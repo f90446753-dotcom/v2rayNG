@@ -1,0 +1,119 @@
+name: Apply Redesign Zip
+
+# Upload a zip (e.g. redesign-001.zip) to the ROOT of the repo with
+# "Add file > Upload files". This workflow unpacks it into the repo,
+# commits the changes, deletes the zip, then starts "Android Build (Universal APK)".
+#
+# Zip rules:
+#   - paths inside the zip are relative to the repo root (V2rayNG/app/src/...)
+#   - an optional DELETE.txt (one path per line) removes files
+#   - anything under .github/workflows/ is ignored (a workflow cannot edit workflows)
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - '*.zip'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: apply-redesign
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Apply zip files
+        id: apply
+        run: |
+          shopt -s nullglob
+          ZIPS=(*.zip)
+          if [ ${#ZIPS[@]} -eq 0 ]; then
+            echo "No zip in repo root, nothing to do."
+            echo "applied=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import glob, os, posixpath, shutil, subprocess, sys, zipfile
+
+          BLOCKED = ".github/workflows/"
+          root = os.getcwd()
+
+          for zpath in sorted(glob.glob("*.zip")):
+              print(f"=== Applying {zpath}")
+              with zipfile.ZipFile(zpath) as z:
+                  names = [n.replace("\\", "/") for n in z.namelist()]
+                  to_delete = []
+                  if "DELETE.txt" in names:
+                      data = z.read(z.namelist()[names.index("DELETE.txt")]).decode("utf-8")
+                      to_delete = [l.strip() for l in data.splitlines() if l.strip() and not l.startswith("#")]
+
+                  added = changed = skipped = 0
+                  for info, name in zip(z.infolist(), names):
+                      if info.is_dir() or name == "DELETE.txt" or name.startswith("__MACOSX/"):
+                          continue
+                      norm = posixpath.normpath(name)
+                      if norm.startswith("/") or norm.startswith("..") or "/../" in norm:
+                          print(f"  skip (unsafe path): {name}"); skipped += 1; continue
+                      if norm.startswith(BLOCKED) or norm.startswith(".git/"):
+                          print(f"  skip (protected): {norm}"); skipped += 1; continue
+                      dest = os.path.join(root, norm)
+                      existed = os.path.exists(dest)
+                      os.makedirs(os.path.dirname(dest), exist_ok=True)
+                      with z.open(info) as src, open(dest, "wb") as out:
+                          shutil.copyfileobj(src, out)
+                      if existed: changed += 1
+                      else: added += 1
+                  print(f"  added={added} changed={changed} skipped={skipped}")
+
+              for rel in to_delete:
+                  norm = posixpath.normpath(rel.replace("\\", "/"))
+                  if norm.startswith("/") or norm.startswith("..") or norm.startswith(BLOCKED) or norm.startswith(".git/"):
+                      print(f"  skip delete (unsafe/protected): {rel}"); continue
+                  target = os.path.join(root, norm)
+                  if os.path.isdir(target):
+                      shutil.rmtree(target); print(f"  deleted dir: {norm}")
+                  elif os.path.exists(target):
+                      os.remove(target); print(f"  deleted: {norm}")
+                  else:
+                      print(f"  already missing: {norm}")
+
+              os.remove(zpath)
+          PY
+          echo "applied=true" >> $GITHUB_OUTPUT
+          echo "zips=${ZIPS[*]}" >> $GITHUB_OUTPUT
+
+      - name: Commit and push
+        id: commit
+        if: steps.apply.outputs.applied == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            echo "pushed=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "Apply redesign: ${{ steps.apply.outputs.zips }}"
+            git push
+            echo "pushed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Start Android build
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run android-build.yml --ref "${{ github.ref_name }}"
