@@ -69,4 +69,8 @@ sealed interface MainAction {
     data class ImportBatchConfig(val configText: String) : MainAction
 
     data object LocateHandled : MainAction
+
+    /** Replaces the single subscription of the app with this link and downloads its configs. */
+    data class SetSubscription(val url: String) : MainAction
+    data class ShowConfigDetails(val guid: String) : MainAction
 }

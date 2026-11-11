@@ -2,38 +2,47 @@ package com.v2ray.ang.ui.main
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
-import com.v2ray.ang.ui.compose.AppDivider
-import com.v2ray.ang.ui.compose.LocalDarkTheme
-import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.ui.compose.ZakiLogo
+import com.v2ray.ang.ui.compose.ZakiMuted
+import com.v2ray.ang.ui.compose.ZakiPurple
+import com.v2ray.ang.ui.compose.ZakiPurpleSoft
+import com.v2ray.ang.ui.compose.zakiClickable
 
+/**
+ * Destinations the main screen can navigate to. Only Settings and PerAppProxy are shown in the
+ * menu of this app; the rest are kept so existing navigation code keeps compiling.
+ */
 enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRes: Int) {
     Subscriptions(R.drawable.ic_subscriptions_24dp, R.string.title_sub_setting),
     PerAppProxy(R.drawable.ic_per_apps_24dp, R.string.per_app_proxy_settings),
@@ -47,76 +56,108 @@ enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRe
     About(R.drawable.ic_about_24dp, R.string.title_about)
 }
 
-private val primaryDrawerItems = listOf(
-    MainDestination.Subscriptions,
-    MainDestination.PerAppProxy,
-    MainDestination.Routing,
-    MainDestination.UserAssets,
-    MainDestination.Settings
+private data class DrawerEntry(
+    val destination: MainDestination,
+    @DrawableRes val iconRes: Int,
+    val label: String
 )
 
-private val drawerItems = primaryDrawerItems + listOf(
-    MainDestination.Promotion,
-    MainDestination.Logcat,
-    MainDestination.CheckUpdate,
-    MainDestination.BackupRestore,
-    MainDestination.About
+private val drawerEntries = listOf(
+    DrawerEntry(MainDestination.Settings, R.drawable.ic_settings_24dp, "Settings"),
+    DrawerEntry(MainDestination.PerAppProxy, R.drawable.ic_per_apps_24dp, "Per-App settings")
 )
 
 @Composable
 fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) -> Unit) {
-    val drawerScrollState = rememberScrollState()
+    val open = drawerState.targetValue == DrawerValue.Open
 
     ModalDrawerSheet(
         drawerState = drawerState,
-        modifier = Modifier.fillMaxWidth(0.75f),
-        drawerContainerColor = MaterialTheme.colorScheme.surface
+        modifier = Modifier.fillMaxWidth(0.76f),
+        drawerContainerColor = Color.White,
+        drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp)
     ) {
         Column(
             modifier = Modifier
-                .verticalScroll(drawerScrollState)
-                .verticalScrollbar(drawerScrollState)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
         ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    val isDarkTheme = LocalDarkTheme.current
-                    Image(
-                        painter = painterResource(R.mipmap.ic_launcher_foreground),
-                        contentDescription = null,
-                        modifier = Modifier.size(120.dp),
-                        colorFilter = if (isDarkTheme) {
-                            ColorFilter.tint(Color.White, BlendMode.SrcIn)
-                        } else {
-                            null
-                        }
-                    )
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+            Spacer(Modifier.height(36.dp))
+            val headerProgress by animateFloatAsState(
+                targetValue = if (open) 1f else 0f,
+                animationSpec = tween(450),
+                label = "drawerHeader"
+            )
+            Column(
+                modifier = Modifier.graphicsLayer {
+                    alpha = headerProgress
+                    translationY = (1f - headerProgress) * 16.dp.toPx()
                 }
-            }
-            drawerItems.forEachIndexed { index, item ->
-                if (index == primaryDrawerItems.size) AppDivider()
-                NavigationDrawerItem(
-                    label = { Text(stringResource(item.labelRes)) },
-                    selected = false,
-                    onClick = { onNavigate(item) },
-                    icon = { Icon(painterResource(item.iconRes), contentDescription = null) },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            ) {
+                ZakiLogo(size = 64.dp)
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "V2Zaki",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
+            Spacer(Modifier.height(32.dp))
+            drawerEntries.forEachIndexed { index, entry ->
+                val progress by animateFloatAsState(
+                    targetValue = if (open) 1f else 0f,
+                    animationSpec = tween(
+                        durationMillis = 420,
+                        delayMillis = if (open) 80 + index * 70 else 0
+                    ),
+                    label = "drawerItem$index"
+                )
+                DrawerItem(
+                    entry = entry,
+                    modifier = Modifier.graphicsLayer {
+                        alpha = progress
+                        translationX = (1f - progress) * -24.dp.toPx()
+                    },
+                    onClick = { onNavigate(entry.destination) }
+                )
+                Spacer(Modifier.height(10.dp))
+            }
         }
+    }
+}
+
+@Composable
+private fun DrawerItem(entry: DrawerEntry, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(ZakiPurpleSoft.copy(alpha = 0.55f))
+            .zakiClickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(entry.iconRes),
+                contentDescription = null,
+                tint = ZakiPurple,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(
+            text = entry.label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

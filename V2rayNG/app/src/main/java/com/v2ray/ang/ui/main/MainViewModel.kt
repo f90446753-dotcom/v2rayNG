@@ -292,6 +292,7 @@ class MainViewModel(
             is MainAction.RemoveServer -> removeServerAndRefresh(action.guid)
             is MainAction.Search -> filterConfig(action.query)
             is MainAction.ImportBatchConfig -> importBatchConfig(action.configText)
+            is MainAction.SetSubscription -> setSubscription(action.url)
             MainAction.LocateHandled -> consumeLocateTarget()
             is MainAction.ShareQRCode -> {
                 val bitmap = dataSource.share2QRCode(action.guid)
@@ -313,6 +314,7 @@ class MainViewModel(
             is MainAction.EditServer,
             is MainAction.ShareClipboard,
             is MainAction.ShareFullContent,
+            is MainAction.ShowConfigDetails,
             is MainAction.OpenSubscriptionLink -> {
                 // Handled by Activity via its onAction lambda
             }
@@ -535,6 +537,36 @@ class MainViewModel(
                     throw cancelled
                 } catch (e: Exception) {
                     LogUtil.e(AppConfig.TAG, "Failed to import batch config", e)
+                    toastError(R.string.toast_failure)
+                }
+            }
+        }
+    }
+
+    /** V2Zaki keeps exactly one subscription: saving a link replaces whatever was there before. */
+    private fun setSubscription(url: String) {
+        if (uiState.value.isRunning) {
+            toast("Disconnect before changing the subscription")
+            return
+        }
+        launchLoading {
+            withContext(ioDispatcher) {
+                try {
+                    val result = dataSource.setSingleSubscription(url)
+                    when {
+                        result == null -> toastError("That is not a valid subscription link")
+                        result.configCount > 0 -> {
+                            toastSuccess("${result.configCount} configs loaded")
+                            setupGroupTab(forceRefresh = true)
+                            refreshSelectedGuid()
+                        }
+
+                        else -> toastError("No configs could be loaded from this link")
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (e: Exception) {
+                    LogUtil.e(AppConfig.TAG, "Failed to set subscription", e)
                     toastError(R.string.toast_failure)
                 }
             }

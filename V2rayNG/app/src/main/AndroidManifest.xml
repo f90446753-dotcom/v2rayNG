@@ -184,23 +184,10 @@
 
         <activity
             android:name=".ui.UrlSchemeActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.BROWSABLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data android:scheme="v2rayng" />
-                <data android:host="install-config" />
-                <data android:host="install-sub" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
+        <activity
+            android:name=".ui.main.ConfigDetailActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.checkupdate.CheckUpdateActivity"
             android:exported="false" />

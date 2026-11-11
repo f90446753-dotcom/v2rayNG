@@ -8,7 +8,14 @@ import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AngApplication
 import com.v2ray.ang.AppConfig
@@ -101,8 +108,12 @@ class MainActivity : HelperBaseComponentActivity() {
     @Composable
     override fun ScreenContent() {
         BackHandler { moveTaskToBack(false) }
+        // 0 = splash playing, 1 = splash fading out (main screen animates in), 2 = splash gone
+        var splashStage by rememberSaveable { mutableIntStateOf(0) }
+        Box(Modifier.fillMaxSize()) {
         MainScreen(
             mainViewModel = mainViewModel,
+            contentVisible = splashStage >= 1,
             onAction = { action ->
                 when (action) {
                     MainAction.ToggleService -> handleFabAction()
@@ -118,11 +129,22 @@ class MainActivity : HelperBaseComponentActivity() {
                     is MainAction.ShareClipboard -> shareToClipboard(action.guid)
                     is MainAction.ShareFullContent -> shareFullContentAsync(action.guid)
                     is MainAction.OpenSubscriptionLink -> openSubscriptionLink(action.url)
+                    is MainAction.ShowConfigDetails -> startActivity(
+                        Intent(this, ConfigDetailActivity::class.java)
+                            .putExtra(ConfigDetailActivity.EXTRA_GUID, action.guid)
+                    )
                     else -> mainViewModel.onAction(action)
                 }
             },
             onNavigate = { route -> navigateTo(route) },
         )
+        if (splashStage < 2) {
+            SplashOverlay(
+                onLeaving = { if (splashStage < 1) splashStage = 1 },
+                onFinished = { splashStage = 2 }
+            )
+        }
+        }
     }
 
     private fun shareToClipboard(guid: String): Boolean =

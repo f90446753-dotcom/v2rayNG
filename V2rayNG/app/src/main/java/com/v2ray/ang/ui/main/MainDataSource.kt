@@ -49,6 +49,12 @@ interface MainDataSource : Closeable {
         updateUI: Boolean
     ): Pair<Int, Int>
 
+    /**
+     * Makes [url] the one and only subscription: downloads its configs and, if that worked, removes
+     * every other subscription and ungrouped config. Returns null when [url] is not a valid link.
+     */
+    fun setSingleSubscription(url: String): SubscriptionUpdateResult?
+
     fun updateConfigViaSubAll(): SubscriptionUpdateResult
     fun updateConfigViaSub(subscriptionCache: SubscriptionCache): SubscriptionUpdateResult
 

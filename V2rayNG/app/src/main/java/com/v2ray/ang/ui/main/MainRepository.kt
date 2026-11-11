@@ -192,6 +192,39 @@ class MainRepository(
         updateUI: Boolean
     ): Pair<Int, Int> = AngConfigManager.importBatchConfig(server, subscriptionId, updateUI)
 
+    override fun setSingleSubscription(url: String): SubscriptionUpdateResult? {
+        val clean = url.trim()
+        if (!Utils.isValidSubUrl(clean)) return null
+
+        val existing = MmkvManager.decodeSubscriptions()
+        val same = existing.firstOrNull { it.subscription.url == clean }
+        val target = same ?: run {
+            val item = SubscriptionItem(remarks = "V2Zaki", url = clean)
+            val id = Utils.getUuid()
+            MmkvManager.encodeSubscription(id, item)
+            SubscriptionCache(id, item)
+        }
+
+        val result = AngConfigManager.updateConfigViaSub(target)
+        if (result.configCount > 0) {
+            existing.filter { it.guid != target.guid }.forEach {
+                SubscriptionUpdater.cancelOne(subId = it.guid)
+                MmkvManager.removeSubscription(it.guid)
+            }
+            MmkvManager.removeServerViaSubid(AppConfig.DEFAULT_SUBSCRIPTION_ID)
+            setSelectedSubscriptionId(target.guid)
+
+            val servers = MmkvManager.decodeServerList(target.guid)
+            val selected = MmkvManager.getSelectServer()
+            if (selected.isNullOrEmpty() || selected !in servers) {
+                servers.firstOrNull()?.let { MmkvManager.setSelectServer(it) }
+            }
+        } else if (same == null) {
+            MmkvManager.removeSubscription(target.guid)
+        }
+        return result
+    }
+
     override fun updateConfigViaSubAll(): SubscriptionUpdateResult =
         AngConfigManager.updateConfigViaSubAll()
 

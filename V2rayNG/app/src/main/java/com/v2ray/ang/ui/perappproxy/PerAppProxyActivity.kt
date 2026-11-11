@@ -3,27 +3,27 @@ package com.v2ray.ang.ui.perappproxy
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,10 +32,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,14 +41,17 @@ import com.v2ray.ang.R
 import com.v2ray.ang.dto.AppInfo
 import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.ui.base.BaseComponentActivity
-import com.v2ray.ang.ui.compose.AppDivider
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
-import com.v2ray.ang.ui.compose.AppListItem
-import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.ConfirmDialog
-import com.v2ray.ang.ui.compose.ItemDivider
-import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
-import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.ui.compose.ZakiAppRow
+import com.v2ray.ang.ui.compose.ZakiCard
+import com.v2ray.ang.ui.compose.ZakiIconButton
+import com.v2ray.ang.ui.compose.ZakiLine
+import com.v2ray.ang.ui.compose.ZakiPurple
+import com.v2ray.ang.ui.compose.ZakiPurpleSoft
+import com.v2ray.ang.ui.compose.ZakiSwitchRow
+import com.v2ray.ang.ui.compose.ZakiTopBar
+import com.v2ray.ang.ui.compose.zakiEnter
 import com.v2ray.ang.util.Utils
 
 private enum class PerAppMenuAction(@StringRes val labelRes: Int) {
@@ -127,155 +128,138 @@ fun PerAppProxyScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     var showInfoDialog by rememberSaveable { mutableStateOf(false) }
-    val onInfoClick = { showInfoDialog = true }
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         onSearch(searchQuery)
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        topBar = {
-            AppTopBar(
-                title = stringResource(R.string.per_app_proxy_settings),
-                onBackClick = onBackClick,
-                isLoading = isLoading,
-                isSearchActive = showSearch,
-                searchQuery = searchQuery,
-                onSearchQueryChange = { query ->
-                    searchQuery = query
-                    onSearch(query)
-                },
-                onSearchClose = {
-                    searchQuery = ""
-                    onSearch("")
-                    showSearch = false
-                },
-                searchPlaceholder = stringResource(R.string.menu_item_search),
-                actions = {
-                    if (!showSearch) {
-                        IconButton(onClick = { showSearch = true }) {
-                            Icon(
-                                painterResource(R.drawable.ic_search_24dp),
-                                contentDescription = stringResource(R.string.acc_search)
-                            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        ZakiTopBar(
+            title = "Per-App settings",
+            onBack = onBackClick,
+            actions = {
+                ZakiIconButton(
+                    iconRes = R.drawable.ic_zaki_search,
+                    contentDescription = "Search",
+                    onClick = {
+                        if (showSearch) {
+                            searchQuery = ""
+                            onSearch("")
                         }
-                    }
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(
-                                painterResource(R.drawable.ic_more_vert_24dp),
-                                contentDescription = stringResource(R.string.acc_more)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ) {
-                            AppDropdownMenuItems(PerAppMenuAction.entries, { it.labelRes }) { action ->
-                                showMenu = false
-                                when (action) {
-                                    PerAppMenuAction.SelectAll -> onSelectAll()
-                                    PerAppMenuAction.InvertSelection -> onInvertSelection()
-                                    PerAppMenuAction.SelectProxyApps -> onSelectProxyAuto()
-                                    PerAppMenuAction.ImportSelection -> onImportProxyApp()
-                                    PerAppMenuAction.ExportSelection -> onExportProxyApp()
-                                }
+                        showSearch = !showSearch
+                    },
+                    tint = if (showSearch) ZakiPurple else MaterialTheme.colorScheme.onSurface
+                )
+                ZakiIconButton(
+                    iconRes = R.drawable.ic_about_24dp,
+                    contentDescription = "Information",
+                    onClick = { showInfoDialog = true }
+                )
+                Box {
+                    ZakiIconButton(
+                        iconRes = R.drawable.ic_zaki_more,
+                        contentDescription = "More",
+                        onClick = { showMenu = true }
+                    )
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        containerColor = Color.White,
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        AppDropdownMenuItems(PerAppMenuAction.entries, { it.labelRes }) { action ->
+                            showMenu = false
+                            when (action) {
+                                PerAppMenuAction.SelectAll -> onSelectAll()
+                                PerAppMenuAction.InvertSelection -> onInvertSelection()
+                                PerAppMenuAction.SelectProxyApps -> onSelectProxyAuto()
+                                PerAppMenuAction.ImportSelection -> onImportProxyApp()
+                                PerAppMenuAction.ExportSelection -> onExportProxyApp()
                             }
                         }
                     }
                 }
+            }
+        )
+
+        if (isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp),
+                color = ZakiPurple,
+                trackColor = Color.Transparent
+            )
+        } else {
+            Spacer(Modifier.height(2.dp))
+        }
+
+        ZakiCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .zakiEnter(delayMs = 0)
+        ) {
+            Column {
+                ZakiSwitchRow(
+                    title = stringResource(R.string.per_app_proxy_settings_enable),
+                    checked = perAppProxyEnabled,
+                    onCheckedChange = onPerAppProxyChanged
+                )
+                HorizontalDivider(color = ZakiLine, modifier = Modifier.padding(horizontal = 18.dp))
+                ZakiSwitchRow(
+                    title = stringResource(R.string.switch_bypass_apps_mode),
+                    checked = bypassApps,
+                    onCheckedChange = onBypassAppsChanged
+                )
+            }
+        }
+
+        AnimatedVisibility(visible = showSearch) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = {
+                    searchQuery = it
+                    onSearch(it)
+                },
+                singleLine = true,
+                placeholder = { Text("Search apps") },
+                shape = RoundedCornerShape(18.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ZakiPurple,
+                    unfocusedBorderColor = ZakiLine,
+                    focusedContainerColor = ZakiPurpleSoft.copy(alpha = 0.5f),
+                    unfocusedContainerColor = ZakiPurpleSoft.copy(alpha = 0.5f),
+                    cursorColor = ZakiPurple
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp)
             )
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.per_app_proxy_settings_enable),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = perAppProxyEnabled,
-                            modifier = Modifier.scale(0.65f),
-                            onCheckedChange = onPerAppProxyChanged,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
-                                checkedTrackColor = MaterialTheme.colorScheme.secondary
-                            )
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.switch_bypass_apps_mode),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = bypassApps,
-                            modifier = Modifier.scale(0.65f),
-                            onCheckedChange = onBypassAppsChanged,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
-                                checkedTrackColor = MaterialTheme.colorScheme.secondary
-                            )
-                        )
-                    }
-                    IconButton(onClick = onInfoClick) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_about_24dp),
-                            contentDescription = stringResource(R.string.acc_per_app_proxy_information),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            AppDivider()
 
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScrollbar(listState),
-                contentPadding = NavigationBarsBottomPadding()
-            ) {
-                items(items = apps, key = { it.packageName }) { app ->
-                    val checked = blacklist.contains(app.packageName)
-                    AppListItem(
-                        appName = app.appName,
-                        packageName = app.packageName,
-                        icon = null,
-                        checked = checked,
-                        onCheckedChange = { onToggleApp(app.packageName) }
-                    )
-                    ItemDivider()
-                }
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 24.dp)
+        ) {
+            items(items = apps, key = { it.packageName }) { app ->
+                ZakiAppRow(
+                    appName = app.appName,
+                    packageName = app.packageName,
+                    checked = blacklist.contains(app.packageName),
+                    onToggle = { onToggleApp(app.packageName) }
+                )
+            }
+            item {
+                Spacer(Modifier.navigationBarsPadding())
             }
         }
     }
