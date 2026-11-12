@@ -69,8 +69,8 @@ import com.v2ray.ang.R
 import com.v2ray.ang.util.AppIconFetcher
 import kotlinx.coroutines.delay
 
-/** Handwritten face (Nothing You Could Do, SIL OFL) used for the author name. */
-val ZakiHandwriting = FontFamily(Font(R.font.nothing_you_could_do))
+/** Elegant italic serif (Lora Italic, SIL OFL) used for the author name next to the menu. */
+val ZakiBrandFont = FontFamily(Font(R.font.lora_italic))
 
 /** Violet that stays readable on both the white and the dark surface. */
 val ZakiAccentText: Color @Composable get() = if (LocalDarkTheme.current) Color(0xFFB79CFF) else ZakiPurple

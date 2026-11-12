@@ -71,7 +71,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.ZakiAccentText
 import com.v2ray.ang.ui.compose.ZakiActionPill
-import com.v2ray.ang.ui.compose.ZakiHandwriting
+import com.v2ray.ang.ui.compose.ZakiBrandFont
 import com.v2ray.ang.ui.compose.ZakiIconButton
 import com.v2ray.ang.ui.compose.ZakiMuted
 import com.v2ray.ang.ui.compose.ZakiPurple
@@ -260,7 +260,7 @@ private fun MainHeader(isLoading: Boolean, contentVisible: Boolean, onMenu: () -
 @Composable
 private fun BrandName(start: Boolean) {
     val name = "Hassan Zakizadeh"
-    val fontSize = 12.sp
+    val fontSize = 13.sp
     Box(contentAlignment = Alignment.CenterStart) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             name.forEachIndexed { index, ch ->
@@ -275,7 +275,7 @@ private fun BrandName(start: Boolean) {
                 ) {
                     Text(
                         text = if (ch == ' ') "\u00A0" else ch.toString(),
-                        fontFamily = ZakiHandwriting,
+                        fontFamily = ZakiBrandFont,
                         fontSize = fontSize,
                         color = ZakiAccentText
                     )
@@ -288,17 +288,25 @@ private fun BrandName(start: Boolean) {
 
 private class SparkleSpec(val x: Float, val y: Float, val sizeDp: Float, val delayMs: Long)
 
-/** A handful of very small four-point stars that twinkle over the name while it animates in. */
+/**
+ * Many tiny four-point stars twinkle over the name while it animates in. A big burst appears at
+ * the start and the number of new stars then falls off along a parabola until the last one fades.
+ */
 @Composable
 private fun SparkleOverlay(start: Boolean, modifier: Modifier = Modifier) {
     val specs = remember {
-        val rnd = kotlin.random.Random(11)
-        List(7) { i ->
+        val rnd = kotlin.random.Random(23)
+        val count = 46
+        val spanMs = 3600f
+        List(count) { i ->
+            // Evenly spread quantiles of a linearly falling density: remaining stars ~ (1 - t)^2.
+            val u = (i + 0.5f) / count
+            val t = 1f - kotlin.math.sqrt(1f - u)
             SparkleSpec(
-                x = 0.05f + 0.9f * (i + rnd.nextFloat() * 0.6f) / 7f,
-                y = 0.12f + 0.76f * rnd.nextFloat(),
-                sizeDp = 2.2f + 1.8f * rnd.nextFloat(),
-                delayMs = 700L + i * 380L + rnd.nextInt(180)
+                x = rnd.nextFloat(),
+                y = -0.35f + 1.7f * rnd.nextFloat(),
+                sizeDp = 1.8f + 2.4f * rnd.nextFloat(),
+                delayMs = 250L + (t * spanMs).toLong() + rnd.nextInt(70)
             )
         }
     }
@@ -309,11 +317,8 @@ private fun SparkleOverlay(start: Boolean, modifier: Modifier = Modifier) {
         specs.forEachIndexed { i, spec ->
             launch {
                 delay(spec.delayMs)
-                repeat(2) {
-                    progress[i].animateTo(1f, tween(380, easing = FastOutSlowInEasing))
-                    progress[i].animateTo(0f, tween(560, easing = FastOutSlowInEasing))
-                    delay(700)
-                }
+                progress[i].animateTo(1f, tween(320, easing = FastOutSlowInEasing))
+                progress[i].animateTo(0f, tween(520, easing = FastOutSlowInEasing))
             }
         }
     }
