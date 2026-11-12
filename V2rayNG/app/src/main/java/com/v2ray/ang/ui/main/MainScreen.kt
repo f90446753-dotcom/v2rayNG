@@ -1,6 +1,12 @@
 package com.v2ray.ang.ui.main
 
 import androidx.compose.animation.AnimatedVisibility
+import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -250,28 +256,88 @@ private fun MainHeader(isLoading: Boolean, contentVisible: Boolean, onMenu: () -
     }
 }
 
-/** Author name in handwriting; its letters fly in like the splash screen when the app opens. */
+/** Author name in handwriting; its letters fly in like the splash screen, then a few tiny stars glint on it. */
 @Composable
 private fun BrandName(start: Boolean) {
     val name = "Hassan Zakizadeh"
-    val fontSize = 24.sp
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        name.forEachIndexed { index, ch ->
-            SplashFlyIn(
-                startDelayMs = 200L + index * 65L,
-                zStart = 560f,
-                tiltDegrees = 62f,
-                liftDp = 30f,
-                spreadIndex = index - (name.length - 1) / 2f,
-                spreadUnitDp = fontSize.value * 0.5f,
-                start = start
-            ) {
-                Text(
-                    text = if (ch == ' ') "\u00A0" else ch.toString(),
-                    fontFamily = ZakiHandwriting,
-                    fontSize = fontSize,
-                    color = ZakiAccentText
-                )
+    val fontSize = 12.sp
+    Box(contentAlignment = Alignment.CenterStart) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            name.forEachIndexed { index, ch ->
+                SplashFlyIn(
+                    startDelayMs = 200L + index * 65L,
+                    zStart = 560f,
+                    tiltDegrees = 62f,
+                    liftDp = 16f,
+                    spreadIndex = index - (name.length - 1) / 2f,
+                    spreadUnitDp = fontSize.value * 0.5f,
+                    start = start
+                ) {
+                    Text(
+                        text = if (ch == ' ') "\u00A0" else ch.toString(),
+                        fontFamily = ZakiHandwriting,
+                        fontSize = fontSize,
+                        color = ZakiAccentText
+                    )
+                }
+            }
+        }
+        SparkleOverlay(start = start, modifier = Modifier.matchParentSize())
+    }
+}
+
+private class SparkleSpec(val x: Float, val y: Float, val sizeDp: Float, val delayMs: Long)
+
+/** A handful of very small four-point stars that twinkle over the name while it animates in. */
+@Composable
+private fun SparkleOverlay(start: Boolean, modifier: Modifier = Modifier) {
+    val specs = remember {
+        val rnd = kotlin.random.Random(11)
+        List(7) { i ->
+            SparkleSpec(
+                x = 0.05f + 0.9f * (i + rnd.nextFloat() * 0.6f) / 7f,
+                y = 0.12f + 0.76f * rnd.nextFloat(),
+                sizeDp = 2.2f + 1.8f * rnd.nextFloat(),
+                delayMs = 700L + i * 380L + rnd.nextInt(180)
+            )
+        }
+    }
+    val progress = remember { List(specs.size) { Animatable(0f) } }
+
+    LaunchedEffect(start) {
+        if (!start) return@LaunchedEffect
+        specs.forEachIndexed { i, spec ->
+            launch {
+                delay(spec.delayMs)
+                repeat(2) {
+                    progress[i].animateTo(1f, tween(380, easing = FastOutSlowInEasing))
+                    progress[i].animateTo(0f, tween(560, easing = FastOutSlowInEasing))
+                    delay(700)
+                }
+            }
+        }
+    }
+
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val color = if (dark) Color.White else Color(0xFFA78BFA)
+
+    Canvas(modifier) {
+        specs.forEachIndexed { i, spec ->
+            val p = progress[i].value
+            if (p > 0.01f) {
+                val cx = size.width * spec.x
+                val cy = size.height * spec.y
+                val r = spec.sizeDp.dp.toPx() * (0.45f + 0.55f * p)
+                drawCircle(color = color.copy(alpha = 0.22f * p), radius = r * 1.15f, center = Offset(cx, cy))
+                val star = Path().apply {
+                    moveTo(cx, cy - r)
+                    quadraticBezierTo(cx, cy, cx + r, cy)
+                    quadraticBezierTo(cx, cy, cx, cy + r)
+                    quadraticBezierTo(cx, cy, cx - r, cy)
+                    quadraticBezierTo(cx, cy, cx, cy - r)
+                    close()
+                }
+                drawPath(star, color = color.copy(alpha = p))
             }
         }
     }

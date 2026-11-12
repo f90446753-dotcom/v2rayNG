@@ -17,7 +17,7 @@ abstract class BaseComponentActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         AppLocaleManager.onActivityCreated(this)
         enableEdgeToEdge()
-        // Avoid a white flash behind a dark app. The main screen keeps its white window for the splash.
+        // Avoid a white flash behind the dark theme while the first frame is being drawn.
         if (!keepWhiteWindow && ThemeManager.themeMode.value != "1") {
             window.setBackgroundDrawable(ColorDrawable(Color.parseColor("#0F0C18")))
         }
@@ -28,7 +28,7 @@ abstract class BaseComponentActivity : AppCompatActivity() {
         }
     }
 
-    /** True for screens that start on a white splash regardless of the chosen theme. */
+    /** Reserved: screens that must keep the default (white) window background. */
     protected open val keepWhiteWindow: Boolean get() = false
 
     @Composable
