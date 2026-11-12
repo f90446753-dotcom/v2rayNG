@@ -18,7 +18,7 @@ abstract class BaseComponentActivity : AppCompatActivity() {
         AppLocaleManager.onActivityCreated(this)
         enableEdgeToEdge()
         // Avoid a white flash behind a dark app. The main screen keeps its white window for the splash.
-        if (!keepWhiteWindow && ThemeManager.themeMode.value == "2") {
+        if (!keepWhiteWindow && ThemeManager.themeMode.value != "1") {
             window.setBackgroundDrawable(ColorDrawable(Color.parseColor("#0F0C18")))
         }
         setContent {

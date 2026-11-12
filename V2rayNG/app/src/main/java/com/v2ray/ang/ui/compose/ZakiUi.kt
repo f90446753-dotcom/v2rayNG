@@ -552,3 +552,39 @@ fun ZakiLogo(size: Dp, modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(size * 0.26f))
     )
 }
+
+/** Wide, soft pill button with an icon, used for secondary actions inside dialogs and cards. */
+@Composable
+fun ZakiActionPill(
+    iconRes: Int,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(ZakiPurpleSoft)
+            .border(1.dp, ZakiPurple.copy(alpha = 0.28f), shape)
+            .zakiClickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = ZakiPurple,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = label,
+            color = ZakiPurple,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}

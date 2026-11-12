@@ -74,7 +74,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                 ZakiSectionLabel("Appearance")
                 ZakiSegmented(
                     options = listOf("Light", "Dark"),
-                    selectedIndex = if (themeMode == "2") 1 else 0,
+                    selectedIndex = if (themeMode == "1") 0 else 1,
                     onSelect = { index -> ThemeManager.setThemeMode(if (index == 1) "2" else "1") }
                 )
             }

@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
+import com.v2ray.ang.ui.compose.ZakiActionPill
 import com.v2ray.ang.ui.compose.ZakiIconButton
 import com.v2ray.ang.ui.compose.ZakiMuted
 import com.v2ray.ang.ui.compose.ZakiPurple
@@ -193,8 +194,21 @@ fun MainScreen(
                 if (url.isNotBlank()) onAction(MainAction.SetSubscription(url))
             },
             extraAction = { setText ->
-                TextButton(onClick = { setText(Utils.getClipboard(context)) }) {
-                    Text("Paste from clipboard", color = ZakiPurple)
+                Column {
+                    TextButton(onClick = { setText(Utils.getClipboard(context)) }) {
+                        Text("Paste from clipboard", color = ZakiPurple)
+                    }
+                    if (currentUrl.isNotEmpty()) {
+                        Spacer(Modifier.height(6.dp))
+                        ZakiActionPill(
+                            iconRes = R.drawable.ic_zaki_refresh,
+                            label = "Update current subscription",
+                            onClick = {
+                                showSubDialog = false
+                                onAction(MainAction.UpdateSubscriptions)
+                            }
+                        )
+                    }
                 }
             }
         )

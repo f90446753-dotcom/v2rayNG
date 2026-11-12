@@ -166,9 +166,9 @@ object ThemeManager {
 
 @Composable
 fun resolveDarkTheme(): Boolean {
-    // "1" = light, "2" = dark. V2Zaki starts in light (white + purple) until the user picks dark.
+    // "1" = light. Anything else (including a fresh install) is dark, the V2Zaki default.
     val mode by ThemeManager.themeMode.collectAsState()
-    return mode == "2"
+    return mode != "1"
 }
 
 val LocalDarkTheme = compositionLocalOf { false }
