@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -24,6 +25,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.ui.base.BaseComponentActivity
+import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.ui.compose.ZakiCard
 import com.v2ray.ang.ui.compose.ZakiLine
 import com.v2ray.ang.ui.compose.ZakiSectionLabel
@@ -51,6 +53,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
     var socksPassword by rememberMmkvString(AppConfig.PREF_SOCKS_PASSWORD, "")
     var mode by rememberMmkvString(AppConfig.PREF_MODE, VPN)
 
+    val themeMode by ThemeManager.themeMode.collectAsState()
     val modeEntries = stringArrayResource(R.array.mode_entries).toList()
     val modeValues = stringArrayResource(R.array.mode_value).toList()
     val scrollState = rememberScrollState()
@@ -68,6 +71,16 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                 .padding(horizontal = 20.dp)
         ) {
             Column(Modifier.zakiEnter(delayMs = 0)) {
+                ZakiSectionLabel("Appearance")
+                ZakiSegmented(
+                    options = listOf("Light", "Dark"),
+                    selectedIndex = if (themeMode == "2") 1 else 0,
+                    onSelect = { index -> ThemeManager.setThemeMode(if (index == 1) "2" else "1") }
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Column(Modifier.zakiEnter(delayMs = 60)) {
                 ZakiSectionLabel("Display")
                 ZakiCard(Modifier.fillMaxWidth()) {
                     ZakiSwitchRow(
@@ -79,7 +92,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
             }
 
             Spacer(Modifier.height(18.dp))
-            Column(Modifier.zakiEnter(delayMs = 90)) {
+            Column(Modifier.zakiEnter(delayMs = 120)) {
                 ZakiSectionLabel("Local proxy")
                 ZakiCard(Modifier.fillMaxWidth()) {
                     Column {

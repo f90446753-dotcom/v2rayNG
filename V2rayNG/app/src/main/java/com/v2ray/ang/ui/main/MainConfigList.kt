@@ -97,7 +97,7 @@ internal fun ConfigListHost(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 6.dp, bottom = bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         itemsIndexed(items = rows, key = { _, row -> row.guid }) { index, row ->
             val firstTime = remember(row.guid) { seen.add(row.guid) }
@@ -132,19 +132,19 @@ private fun ConfigCard(
         selected = selected
     ) {
         Row(
-            modifier = Modifier.padding(start = 16.dp, end = 6.dp, top = 14.dp, bottom = 14.dp),
+            modifier = Modifier.padding(start = 14.dp, end = 4.dp, top = 9.dp, bottom = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ZakiCheckDot(checked = selected)
-            Spacer(Modifier.width(14.dp))
+            ZakiCheckDot(checked = selected, size = 20.dp)
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = row.remarks,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
@@ -166,12 +166,12 @@ private fun ConfigCard(
                         color = ZakiMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 1.dp)
                     )
                 }
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    modifier = Modifier.padding(top = 6.dp)
                 ) {
                     configBadges(row.profile).forEach { (text, color) ->
                         ZakiBadge(text = text, color = color)
@@ -182,8 +182,8 @@ private fun ConfigCard(
                 iconRes = R.drawable.ic_settings_24dp,
                 contentDescription = "Config details",
                 onClick = onDetails,
-                size = 40.dp,
-                iconSize = 20.dp,
+                size = 36.dp,
+                iconSize = 19.dp,
                 tint = ZakiMuted
             )
         }

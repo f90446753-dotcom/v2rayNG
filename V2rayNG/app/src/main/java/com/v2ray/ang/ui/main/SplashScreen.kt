@@ -17,7 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +36,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +85,25 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
     }
     LaunchedEffect(leaving) {
         if (leaving) onLeaving()
+    }
+
+    // The splash is always white, so system bar icons must be dark while it is on screen.
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        var ctx: Context? = view.context
+        while (ctx is ContextWrapper && ctx !is Activity) ctx = ctx.baseContext
+        val window = (ctx as? Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        val prevStatus = controller?.isAppearanceLightStatusBars
+        val prevNav = controller?.isAppearanceLightNavigationBars
+        controller?.isAppearanceLightStatusBars = true
+        controller?.isAppearanceLightNavigationBars = true
+        onDispose {
+            if (controller != null) {
+                if (prevStatus != null) controller.isAppearanceLightStatusBars = prevStatus
+                if (prevNav != null) controller.isAppearanceLightNavigationBars = prevNav
+            }
+        }
     }
 
     val screenWidthDp = LocalConfiguration.current.screenWidthDp

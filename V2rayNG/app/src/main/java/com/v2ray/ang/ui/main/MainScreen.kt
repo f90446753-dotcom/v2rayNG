@@ -3,6 +3,7 @@ package com.v2ray.ang.ui.main
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -37,6 +38,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -272,12 +274,13 @@ private fun MainControls(
     onRealDelay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val pageColor = MaterialTheme.colorScheme.background
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Transparent, Color.White.copy(alpha = 0.94f), Color.White)
+                    listOf(Color.Transparent, pageColor.copy(alpha = 0.94f), pageColor)
                 )
             )
             .navigationBarsPadding()
@@ -285,13 +288,25 @@ private fun MainControls(
             .zakiEnter(delayMs = 120, offsetY = 40.dp, start = contentVisible),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(Modifier.height(20.dp), contentAlignment = Alignment.Center) {
-            Crossfade(targetState = caption, animationSpec = tween(300), label = "caption") { text ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Crossfade(
+                targetState = caption,
+                animationSpec = tween(300),
+                modifier = Modifier.fillMaxWidth(),
+                label = "caption"
+            ) { text ->
                 Text(
                     text = text,
                     fontSize = 13.sp,
                     color = if (isRunning) ZakiPurple else ZakiMuted,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -325,13 +340,17 @@ private fun RoundAction(
     onClick: () -> Unit,
     pulsing: Boolean = false,
 ) {
-    val transition = rememberInfiniteTransition(label = "pulse")
-    val pulse by transition.animateFloat(
-        initialValue = 0.82f,
-        targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(tween(650, easing = LinearEasing), RepeatMode.Reverse),
-        label = "pulseValue"
-    )
+    // The infinite animation only exists while a test is running, so an idle screen stays idle.
+    val pulse: State<Float> = if (pulsing) {
+        rememberInfiniteTransition(label = "pulse").animateFloat(
+            initialValue = 0.82f,
+            targetValue = 1.12f,
+            animationSpec = infiniteRepeatable(tween(650, easing = LinearEasing), RepeatMode.Reverse),
+            label = "pulseValue"
+        )
+    } else {
+        remember { mutableStateOf(1f) }
+    }
     val bg by animateColorAsState(
         if (pulsing) ZakiPurple else ZakiPurpleSoft, tween(300), label = "roundBg"
     )
@@ -353,7 +372,7 @@ private fun RoundAction(
             modifier = Modifier
                 .size(22.dp)
                 .graphicsLayer {
-                    val s = if (pulsing) pulse else 1f
+                    val s = if (pulsing) pulse.value else 1f
                     scaleX = s
                     scaleY = s
                 }
@@ -365,24 +384,32 @@ private fun RoundAction(
 private fun ConnectButton(isRunning: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(29.dp)
     val bg by animateColorAsState(
-        if (isRunning) ZakiPurpleSoft else ZakiPurple, tween(350), label = "connectBg"
+        if (isRunning) ZakiPurpleSoft else ZakiPurple, tween(420, easing = FastOutSlowInEasing), label = "connectBg"
     )
     val fg by animateColorAsState(
-        if (isRunning) ZakiPurple else Color.White, tween(350), label = "connectFg"
+        if (isRunning) ZakiPurple else Color.White, tween(420, easing = FastOutSlowInEasing), label = "connectFg"
     )
     val borderColor by animateColorAsState(
-        if (isRunning) ZakiPurple else Color.Transparent, tween(350), label = "connectBorder"
+        if (isRunning) ZakiPurple else Color.Transparent, tween(420, easing = FastOutSlowInEasing), label = "connectBorder"
     )
     val iconRotation by animateFloatAsState(
-        if (isRunning) 180f else 0f, tween(500), label = "connectIcon"
+        if (isRunning) 180f else 0f, tween(520, easing = FastOutSlowInEasing), label = "connectIcon"
     )
-    val dotTransition = rememberInfiniteTransition(label = "dot")
-    val dotAlpha by dotTransition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse),
-        label = "dotAlpha"
+    // Both labels are always laid out (so the button never changes its layout); only their
+    // opacity and a small vertical slide are animated.
+    val runningProgress by animateFloatAsState(
+        if (isRunning) 1f else 0f, tween(380, easing = FastOutSlowInEasing), label = "connectLabel"
     )
+    val dotPulse: State<Float> = if (isRunning) {
+        rememberInfiniteTransition(label = "dot").animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse),
+            label = "dotAlpha"
+        )
+    } else {
+        remember { mutableStateOf(1f) }
+    }
 
     Box(
         modifier = modifier
@@ -403,23 +430,39 @@ private fun ConnectButton(isRunning: Boolean, onClick: () -> Unit, modifier: Mod
                     .graphicsLayer { rotationZ = iconRotation }
             )
             Spacer(Modifier.width(10.dp))
-            Crossfade(targetState = isRunning, animationSpec = tween(300), label = "connectLabel") { running ->
+            Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = if (running) "Disconnect" else "Connect",
+                    text = "Connect",
                     color = fg,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    modifier = Modifier.graphicsLayer {
+                        alpha = 1f - runningProgress
+                        translationY = -8.dp.toPx() * runningProgress
+                    }
                 )
-            }
-            if (isRunning) {
-                Spacer(Modifier.width(10.dp))
-                Box(
-                    Modifier
-                        .size(7.dp)
-                        .graphicsLayer { alpha = dotAlpha }
-                        .background(ZakiPurple, CircleShape)
+                Text(
+                    text = "Disconnect",
+                    color = fg,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    modifier = Modifier.graphicsLayer {
+                        alpha = runningProgress
+                        translationY = 8.dp.toPx() * (1f - runningProgress)
+                    }
                 )
             }
         }
+        // Status dot sits at the end of the button, so it never pushes the label around.
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 20.dp)
+                .size(7.dp)
+                .graphicsLayer { alpha = runningProgress * dotPulse.value }
+                .background(ZakiPurple, CircleShape)
+        )
     }
 }

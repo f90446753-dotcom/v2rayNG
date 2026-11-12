@@ -37,6 +37,7 @@ import com.v2ray.ang.ui.compose.ZakiLogo
 import com.v2ray.ang.ui.compose.ZakiMuted
 import com.v2ray.ang.ui.compose.ZakiPurple
 import com.v2ray.ang.ui.compose.ZakiPurpleSoft
+import com.v2ray.ang.ui.compose.ZakiSurface
 import com.v2ray.ang.ui.compose.zakiClickable
 
 /**
@@ -74,7 +75,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
     ModalDrawerSheet(
         drawerState = drawerState,
         modifier = Modifier.fillMaxWidth(0.76f),
-        drawerContainerColor = Color.White,
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
         drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp)
     ) {
         Column(
@@ -142,7 +143,7 @@ private fun DrawerItem(entry: DrawerEntry, modifier: Modifier, onClick: () -> Un
             modifier = Modifier
                 .size(38.dp)
                 .clip(CircleShape)
-                .background(Color.White),
+                .background(ZakiSurface),
             contentAlignment = Alignment.Center
         ) {
             Icon(

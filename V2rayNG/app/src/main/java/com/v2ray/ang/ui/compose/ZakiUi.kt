@@ -188,7 +188,7 @@ fun ZakiCard(
         if (selected) ZakiPurple else ZakiLine, tween(250), label = "cardBorder"
     )
     val bg by animateColorAsState(
-        if (selected) ZakiPurpleSoft else Color.White, tween(250), label = "cardBg"
+        if (selected) ZakiPurpleSoft else ZakiSurface, tween(250), label = "cardBg"
     )
     Box(
         modifier = modifier
@@ -224,7 +224,7 @@ fun ZakiBadge(text: String, color: Color, modifier: Modifier = Modifier) {
             .clip(shape)
             .background(color.copy(alpha = 0.10f))
             .border(1.dp, color.copy(alpha = 0.32f), shape)
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .padding(horizontal = 7.dp, vertical = 2.dp)
     )
 }
 
@@ -234,7 +234,7 @@ fun zakiSwitchColors() = SwitchDefaults.colors(
     checkedTrackColor = ZakiPurple,
     checkedBorderColor = Color.Transparent,
     uncheckedThumbColor = Color.White,
-    uncheckedTrackColor = Color(0xFFD9D4EA),
+    uncheckedTrackColor = if (LocalDarkTheme.current) Color(0xFF3A3354) else Color(0xFFD9D4EA),
     uncheckedBorderColor = Color.Transparent
 )
 
@@ -351,7 +351,7 @@ fun ZakiTextDialog(
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = ZakiSurface,
         shape = RoundedCornerShape(28.dp),
         title = { Text(title, fontWeight = FontWeight.SemiBold) },
         text = {
@@ -423,7 +423,7 @@ fun ZakiSegmented(
                 if (selected) ZakiPurple else Color.Transparent, tween(250), label = "segBg"
             )
             val fg by animateColorAsState(
-                if (selected) Color.White else ZakiPurpleDeep, tween(250), label = "segFg"
+                if (selected) Color.White else MaterialTheme.colorScheme.onPrimaryContainer, tween(250), label = "segFg"
             )
             Box(
                 modifier = Modifier
@@ -464,7 +464,7 @@ fun ZakiAppRow(
             .build()
     }
     val bg by animateColorAsState(
-        if (checked) ZakiPurpleSoft else Color.White, tween(220), label = "appRowBg"
+        if (checked) ZakiPurpleSoft else Color.Transparent, tween(220), label = "appRowBg"
     )
     val shape = RoundedCornerShape(18.dp)
     Row(
@@ -514,7 +514,7 @@ fun ZakiCheckDot(checked: Boolean, modifier: Modifier = Modifier, size: Dp = 24.
         if (checked) ZakiPurple else Color.Transparent, tween(220), label = "dotFill"
     )
     val stroke by animateColorAsState(
-        if (checked) ZakiPurple else Color(0xFFCFC8E6), tween(220), label = "dotStroke"
+        if (checked) ZakiPurple else MaterialTheme.colorScheme.outline, tween(220), label = "dotStroke"
     )
     val iconScale by animateFloatAsState(
         if (checked) 1f else 0f, spring(stiffness = Spring.StiffnessMediumLow), label = "dotIcon"

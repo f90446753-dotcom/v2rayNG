@@ -10,7 +10,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import android.graphics.drawable.ColorDrawable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -62,6 +66,8 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : HelperBaseComponentActivity() {
 
+    override val keepWhiteWindow: Boolean get() = true
+
     private val mainViewModel: MainViewModel by viewModels {
         MainViewModel.Factory(application, MainRepository(application as AngApplication))
     }
@@ -110,6 +116,13 @@ class MainActivity : HelperBaseComponentActivity() {
         BackHandler { moveTaskToBack(false) }
         // 0 = splash playing, 1 = splash fading out (main screen animates in), 2 = splash gone
         var splashStage by rememberSaveable { mutableIntStateOf(0) }
+        // The window stays white for the splash, then follows the chosen light / dark theme.
+        val pageColor = MaterialTheme.colorScheme.background
+        SideEffect {
+            if (splashStage >= 1) {
+                this@MainActivity.window.setBackgroundDrawable(ColorDrawable(pageColor.toArgb()))
+            }
+        }
         Box(Modifier.fillMaxSize()) {
         MainScreen(
             mainViewModel = mainViewModel,

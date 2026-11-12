@@ -49,6 +49,7 @@ import com.v2ray.ang.ui.compose.ZakiIconButton
 import com.v2ray.ang.ui.compose.ZakiLine
 import com.v2ray.ang.ui.compose.ZakiPurple
 import com.v2ray.ang.ui.compose.ZakiPurpleSoft
+import com.v2ray.ang.ui.compose.ZakiSurface
 import com.v2ray.ang.ui.compose.ZakiSwitchRow
 import com.v2ray.ang.ui.compose.ZakiTopBar
 import com.v2ray.ang.ui.compose.zakiEnter
@@ -169,7 +170,7 @@ fun PerAppProxyScreen(
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false },
-                        containerColor = Color.White,
+                        containerColor = ZakiSurface,
                         shape = RoundedCornerShape(18.dp)
                     ) {
                         AppDropdownMenuItems(PerAppMenuAction.entries, { it.labelRes }) { action ->
