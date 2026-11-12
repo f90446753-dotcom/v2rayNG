@@ -31,6 +31,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.material3.MaterialTheme
+import com.v2ray.ang.ui.compose.ZakiAccentText
+import com.v2ray.ang.ui.compose.ZakiInk
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -54,7 +58,6 @@ private const val HOLD_AFTER_LAST_LETTER_MS = 2500L
 
 private val FadeEasing = CubicBezierEasing(0.3f, 0.6f, 0.4f, 1f)
 private val ExpoOut = CubicBezierEasing(0.19f, 1f, 0.22f, 1f)
-private val SplashInk = Color(0xFF1C1E21)
 
 /**
  * Welcome screen shown once when the app opens: every letter of the name flies in from depth,
@@ -87,25 +90,6 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
         if (leaving) onLeaving()
     }
 
-    // The splash is always white, so system bar icons must be dark while it is on screen.
-    val view = LocalView.current
-    DisposableEffect(Unit) {
-        var ctx: Context? = view.context
-        while (ctx is ContextWrapper && ctx !is Activity) ctx = ctx.baseContext
-        val window = (ctx as? Activity)?.window
-        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
-        val prevStatus = controller?.isAppearanceLightStatusBars
-        val prevNav = controller?.isAppearanceLightNavigationBars
-        controller?.isAppearanceLightStatusBars = true
-        controller?.isAppearanceLightNavigationBars = true
-        onDispose {
-            if (controller != null) {
-                if (prevStatus != null) controller.isAppearanceLightStatusBars = prevStatus
-                if (prevNav != null) controller.isAppearanceLightNavigationBars = prevNav
-            }
-        }
-    }
-
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val fontSize = (screenWidthDp * 0.08f).coerceIn(30f, 52f).sp
 
@@ -113,7 +97,7 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer { this.alpha = alpha }
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .pointerInput(Unit) { detectTapGestures { leaving = true } },
         contentAlignment = Alignment.Center
     ) {
@@ -133,7 +117,7 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
                             fontSize = fontSize,
                             fontFamily = FontFamily.Serif,
                             fontWeight = FontWeight.Normal,
-                            color = SplashInk
+                            color = ZakiInk
                         )
                     }
                 }
@@ -151,6 +135,7 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
                 Image(
                     painter = painterResource(R.drawable.splash_signature),
                     contentDescription = null,
+                    colorFilter = ColorFilter.tint(ZakiAccentText),
                     modifier = Modifier.width(78.dp)
                 )
             }
@@ -163,20 +148,22 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
  * transparent, then ease out onto the page (same timings as the original web intro).
  */
 @Composable
-private fun SplashFlyIn(
+internal fun SplashFlyIn(
     startDelayMs: Long,
     zStart: Float,
     tiltDegrees: Float,
     liftDp: Float,
     spreadIndex: Float,
     spreadUnitDp: Float,
+    start: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val fade = remember { Animatable(0f) }
     val blur = remember { Animatable(0f) }
     val move = remember { Animatable(0f) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(start) {
+        if (!start) return@LaunchedEffect
         delay(startDelayMs)
         launch { fade.animateTo(1f, tween(1300, easing = FadeEasing)) }
         launch { blur.animateTo(1f, tween(2200, easing = ExpoOut)) }

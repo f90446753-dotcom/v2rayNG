@@ -53,6 +53,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -66,6 +68,12 @@ import coil3.request.ImageRequest
 import com.v2ray.ang.R
 import com.v2ray.ang.util.AppIconFetcher
 import kotlinx.coroutines.delay
+
+/** Handwritten face (Nothing You Could Do, SIL OFL) used for the author name. */
+val ZakiHandwriting = FontFamily(Font(R.font.nothing_you_could_do))
+
+/** Violet that stays readable on both the white and the dark surface. */
+val ZakiAccentText: Color @Composable get() = if (LocalDarkTheme.current) Color(0xFFB79CFF) else ZakiPurple
 
 /** Subtle "press in" feedback for anything tappable. */
 fun Modifier.zakiClickable(enabled: Boolean = true, onClick: () -> Unit): Modifier = composed {

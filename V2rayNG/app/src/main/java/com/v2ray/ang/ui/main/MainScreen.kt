@@ -63,7 +63,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
+import com.v2ray.ang.ui.compose.ZakiAccentText
 import com.v2ray.ang.ui.compose.ZakiActionPill
+import com.v2ray.ang.ui.compose.ZakiHandwriting
 import com.v2ray.ang.ui.compose.ZakiIconButton
 import com.v2ray.ang.ui.compose.ZakiMuted
 import com.v2ray.ang.ui.compose.ZakiPurple
@@ -233,6 +235,8 @@ private fun MainHeader(isLoading: Boolean, contentVisible: Boolean, onMenu: () -
                 size = 46.dp,
                 modifier = Modifier.zakiEnter(delayMs = 0, start = contentVisible)
             )
+            Spacer(Modifier.width(12.dp))
+            BrandName(start = contentVisible)
         }
         AnimatedVisibility(visible = isLoading) {
             LinearProgressIndicator(
@@ -242,6 +246,33 @@ private fun MainHeader(isLoading: Boolean, contentVisible: Boolean, onMenu: () -
                 color = ZakiPurple,
                 trackColor = Color.Transparent
             )
+        }
+    }
+}
+
+/** Author name in handwriting; its letters fly in like the splash screen when the app opens. */
+@Composable
+private fun BrandName(start: Boolean) {
+    val name = "Hassan Zakizadeh"
+    val fontSize = 24.sp
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        name.forEachIndexed { index, ch ->
+            SplashFlyIn(
+                startDelayMs = 200L + index * 65L,
+                zStart = 560f,
+                tiltDegrees = 62f,
+                liftDp = 30f,
+                spreadIndex = index - (name.length - 1) / 2f,
+                spreadUnitDp = fontSize.value * 0.5f,
+                start = start
+            ) {
+                Text(
+                    text = if (ch == ' ') "\u00A0" else ch.toString(),
+                    fontFamily = ZakiHandwriting,
+                    fontSize = fontSize,
+                    color = ZakiAccentText
+                )
+            }
         }
     }
 }
