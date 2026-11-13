@@ -296,7 +296,7 @@ private class SparkleSpec(val x: Float, val y: Float, val sizeDp: Float, val del
 private fun SparkleOverlay(start: Boolean, modifier: Modifier = Modifier) {
     val specs = remember {
         val rnd = kotlin.random.Random(23)
-        val count = 46
+        val count = 7
         val spanMs = 3600f
         List(count) { i ->
             // Evenly spread quantiles of a linearly falling density: remaining stars ~ (1 - t)^2.
