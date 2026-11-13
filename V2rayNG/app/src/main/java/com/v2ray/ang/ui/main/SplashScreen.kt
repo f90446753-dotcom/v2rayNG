@@ -6,7 +6,14 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -102,6 +109,7 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box {
             Row {
                 SPLASH_NAME.forEachIndexed { index, ch ->
                     SplashFlyIn(
@@ -121,6 +129,11 @@ fun SplashOverlay(onLeaving: () -> Unit, onFinished: () -> Unit) {
                         )
                     }
                 }
+            }
+            GlowSparkles(
+                startMs = starts.last() + HOLD_AFTER_LAST_LETTER_MS - 1000L,
+                modifier = Modifier.matchParentSize()
+            )
             }
             Spacer(Modifier.height(34.dp))
             // Small signature logo, animated like the text but a beat later.
@@ -192,5 +205,84 @@ internal fun SplashFlyIn(
         }
     ) {
         content()
+    }
+}
+
+private class GlowSpec(val x: Float, val y: Float, val sizeDp: Float, val delayMs: Long)
+
+/**
+ * Three or four stars glint beside the name just before the main screen appears. Each one has a
+ * bright core, thin rays and a soft halo of light around it.
+ */
+@Composable
+private fun GlowSparkles(startMs: Long, modifier: Modifier = Modifier) {
+    val specs = remember {
+        listOf(
+            GlowSpec(x = 0.09f, y = -0.22f, sizeDp = 9f, delayMs = 0L),
+            GlowSpec(x = 0.46f, y = 1.16f, sizeDp = 6.5f, delayMs = 260L),
+            GlowSpec(x = 0.79f, y = -0.20f, sizeDp = 8f, delayMs = 520L),
+            GlowSpec(x = 1.03f, y = 0.42f, sizeDp = 5.5f, delayMs = 780L)
+        )
+    }
+    val progress = remember { List(specs.size) { Animatable(0f) } }
+
+    LaunchedEffect(Unit) {
+        specs.forEachIndexed { i, spec ->
+            launch {
+                delay(startMs + spec.delayMs)
+                // Natural twinkle: swell, dip, flare again, then fade away.
+                progress[i].animateTo(1f, tween(480, easing = FastOutSlowInEasing))
+                progress[i].animateTo(0.45f, tween(380, easing = FastOutSlowInEasing))
+                progress[i].animateTo(1f, tween(380, easing = FastOutSlowInEasing))
+                progress[i].animateTo(0f, tween(650, easing = FastOutSlowInEasing))
+            }
+        }
+    }
+
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val core = if (dark) Color.White else Color(0xFF7C3AED)
+    val halo = if (dark) Color(0xFFB79CFF) else Color(0xFF9F7BFF)
+
+    Canvas(modifier) {
+        specs.forEachIndexed { i, spec ->
+            val p = progress[i].value
+            if (p > 0.01f) {
+                val center = Offset(size.width * spec.x, size.height * spec.y)
+                val r = spec.sizeDp.dp.toPx() * (0.55f + 0.45f * p)
+
+                // Soft halo of light
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            halo.copy(alpha = 0.55f * p),
+                            halo.copy(alpha = 0.18f * p),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = r * 3.4f
+                    ),
+                    radius = r * 3.4f,
+                    center = center
+                )
+
+                rotate(degrees = 16f * p, pivot = center) {
+                    fun ray(length: Float, alpha: Float) {
+                        val star = Path().apply {
+                            moveTo(center.x, center.y - length)
+                            quadraticBezierTo(center.x, center.y, center.x + length, center.y)
+                            quadraticBezierTo(center.x, center.y, center.x, center.y + length)
+                            quadraticBezierTo(center.x, center.y, center.x - length, center.y)
+                            quadraticBezierTo(center.x, center.y, center.x, center.y - length)
+                            close()
+                        }
+                        drawPath(star, color = core.copy(alpha = alpha * p))
+                    }
+                    ray(r * 1.15f, 1f)
+                    rotate(degrees = 45f, pivot = center) { ray(r * 0.62f, 0.7f) }
+                }
+                // Bright heart of the star
+                drawCircle(color = core.copy(alpha = p), radius = r * 0.17f, center = center)
+            }
+        }
     }
 }

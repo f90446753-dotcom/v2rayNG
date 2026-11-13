@@ -102,6 +102,7 @@ internal fun ConfigListHost(
         itemsIndexed(items = rows, key = { _, row -> row.guid }) { index, row ->
             val firstTime = remember(row.guid) { seen.add(row.guid) }
             ConfigCard(
+                modifier = Modifier.animateItem(),
                 row = row,
                 selected = row.guid == selectedGuid,
                 animateIn = firstTime && index < 12,
@@ -116,6 +117,7 @@ internal fun ConfigListHost(
 
 @Composable
 private fun ConfigCard(
+    modifier: Modifier = Modifier,
     row: ServerRowUiModel,
     selected: Boolean,
     animateIn: Boolean,
@@ -125,7 +127,7 @@ private fun ConfigCard(
     onDetails: () -> Unit,
 ) {
     ZakiCard(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .zakiEnter(delayMs = enterDelayMs, enabled = animateIn, start = contentVisible)
             .zakiClickable(onClick = onSelect),
