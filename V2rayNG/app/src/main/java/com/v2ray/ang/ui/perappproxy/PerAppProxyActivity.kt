@@ -45,6 +45,7 @@ import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.ConfirmDialog
 import com.v2ray.ang.ui.compose.ZakiAppRow
 import com.v2ray.ang.ui.compose.ZakiCard
+import com.v2ray.ang.ui.compose.glassMeshBackground
 import com.v2ray.ang.ui.compose.ZakiIconButton
 import com.v2ray.ang.ui.compose.ZakiLine
 import com.v2ray.ang.ui.compose.ZakiPurple
@@ -138,7 +139,7 @@ fun PerAppProxyScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .glassMeshBackground()
     ) {
         ZakiTopBar(
             title = "Per-App settings",

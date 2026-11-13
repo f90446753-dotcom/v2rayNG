@@ -1,6 +1,17 @@
 package com.v2ray.ang.ui.main
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.v2ray.ang.ui.compose.GlassConnectButton
+import com.v2ray.ang.ui.compose.GlassRoundButton
+import com.v2ray.ang.ui.compose.GlassStatusPill
+import com.v2ray.ang.ui.compose.glass
+import com.v2ray.ang.ui.compose.glassMeshBackground
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Path
@@ -120,6 +131,9 @@ fun MainScreen(
             else "Connected \u00B7 delay test failed"
     }
 
+    val backdrop = rememberLayerBackdrop()
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     // The design is English / left-to-right in every language, so the menu stays at the top left.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         ModalNavigationDrawer(
@@ -127,6 +141,7 @@ fun MainScreen(
             drawerContent = {
                 MainDrawerContent(
                     drawerState = drawerState,
+                    backdrop = backdrop,
                     onNavigate = { route ->
                         scope.launch { drawerState.close() }
                         onNavigate(route)
@@ -134,39 +149,40 @@ fun MainScreen(
                 )
             }
         ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                Column(Modifier.fillMaxSize()) {
-                    MainHeader(
-                        isLoading = isLoading,
-                        contentVisible = contentVisible,
-                        onMenu = { scope.launch { drawerState.open() } }
-                    )
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
-                        if (groupId != null) {
-                            ConfigListHost(
-                                groupId = groupId,
-                                mainViewModel = mainViewModel,
-                                selectedGuid = uiState.selectedGuid,
-                                bottomPadding = with(LocalDensity.current) { controlsHeightPx.toDp() } + 12.dp,
-                                contentVisible = contentVisible,
-                                onSelect = { guid -> onAction(MainAction.SelectServer(guid)) },
-                                onDetails = { guid -> onAction(MainAction.ShowConfigDetails(guid)) }
-                            )
-                        } else {
-                            EmptyHint(contentVisible = contentVisible)
-                        }
+            Box(Modifier.fillMaxSize()) {
+                // Everything the glass can see lives in this box: the ambient background and the list.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .layerBackdrop(backdrop)
+                        .glassMeshBackground()
+                ) {
+                    if (groupId != null) {
+                        ConfigListHost(
+                            groupId = groupId,
+                            mainViewModel = mainViewModel,
+                            selectedGuid = uiState.selectedGuid,
+                            topPadding = topInset + 56.dp + 22.dp,
+                            bottomPadding = with(LocalDensity.current) { controlsHeightPx.toDp() } + 12.dp,
+                            contentVisible = contentVisible,
+                            onSelect = { guid -> onAction(MainAction.SelectServer(guid)) },
+                            onDetails = { guid -> onAction(MainAction.ShowConfigDetails(guid)) }
+                        )
+                    } else {
+                        EmptyHint(contentVisible = contentVisible)
                     }
                 }
 
+                MainHeader(
+                    backdrop = backdrop,
+                    isLoading = isLoading,
+                    contentVisible = contentVisible,
+                    onMenu = { scope.launch { drawerState.open() } },
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
+
                 MainControls(
+                    backdrop = backdrop,
                     isRunning = uiState.isRunning,
                     isTesting = uiState.isTesting,
                     caption = caption,
@@ -224,29 +240,42 @@ fun MainScreen(
 }
 
 @Composable
-private fun MainHeader(isLoading: Boolean, contentVisible: Boolean, onMenu: () -> Unit) {
-    Column(Modifier.statusBarsPadding()) {
+private fun MainHeader(
+    backdrop: Backdrop,
+    isLoading: Boolean,
+    contentVisible: Boolean,
+    onMenu: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .zakiEnter(delayMs = 0, start = contentVisible)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .height(56.dp)
+                .glass(backdrop = backdrop, shape = RoundedCornerShape(28.dp), blurRadius = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ZakiIconButton(
                 iconRes = R.drawable.ic_zaki_menu,
                 contentDescription = "Open menu",
                 onClick = onMenu,
-                background = ZakiPurpleSoft,
-                tint = ZakiPurple,
+                tint = ZakiAccentText,
                 size = 46.dp,
-                modifier = Modifier.zakiEnter(delayMs = 0, start = contentVisible)
+                modifier = Modifier.padding(start = 5.dp)
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(8.dp))
             BrandName(start = contentVisible)
         }
         AnimatedVisibility(visible = isLoading) {
             LinearProgressIndicator(
                 modifier = Modifier
+                    .padding(top = 8.dp, start = 24.dp, end = 24.dp)
                     .fillMaxWidth()
                     .height(2.dp),
                 color = ZakiPurple,
@@ -381,6 +410,7 @@ private fun EmptyHint(contentVisible: Boolean) {
 
 @Composable
 private fun MainControls(
+    backdrop: Backdrop,
     isRunning: Boolean,
     isTesting: Boolean,
     caption: String,
@@ -390,74 +420,8 @@ private fun MainControls(
     onRealDelay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pageColor = MaterialTheme.colorScheme.background
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.Transparent, pageColor.copy(alpha = 0.94f), pageColor)
-                )
-            )
-            .navigationBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = 18.dp)
-            .zakiEnter(delayMs = 120, offsetY = 40.dp, start = contentVisible),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Crossfade(
-                targetState = caption,
-                animationSpec = tween(300),
-                modifier = Modifier.fillMaxWidth(),
-                label = "caption"
-            ) { text ->
-                Text(
-                    text = text,
-                    fontSize = 13.sp,
-                    color = if (isRunning) ZakiPurple else ZakiMuted,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-        Spacer(Modifier.height(14.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RoundAction(
-                iconRes = R.drawable.ic_zaki_link,
-                description = "Add subscription link",
-                onClick = onAddSubscription
-            )
-            Spacer(Modifier.width(14.dp))
-            ConnectButton(isRunning = isRunning, onClick = onToggle, modifier = Modifier.weight(1f))
-            Spacer(Modifier.width(14.dp))
-            RoundAction(
-                iconRes = R.drawable.ic_zaki_bolt,
-                description = "Real delay",
-                onClick = onRealDelay,
-                pulsing = isTesting
-            )
-        }
-    }
-}
-
-@Composable
-private fun RoundAction(
-    iconRes: Int,
-    description: String,
-    onClick: () -> Unit,
-    pulsing: Boolean = false,
-) {
-    // The infinite animation only exists while a test is running, so an idle screen stays idle.
-    val pulse: State<Float> = if (pulsing) {
+    // The pulse only exists while a test runs, so an idle screen stays idle.
+    val pulse: State<Float> = if (isTesting) {
         rememberInfiniteTransition(label = "pulse").animateFloat(
             initialValue = 0.82f,
             targetValue = 1.12f,
@@ -467,118 +431,50 @@ private fun RoundAction(
     } else {
         remember { mutableStateOf(1f) }
     }
-    val bg by animateColorAsState(
-        if (pulsing) ZakiPurple else ZakiPurpleSoft, tween(300), label = "roundBg"
+    val testTint by animateColorAsState(
+        if (isTesting) ZakiPurple else ZakiPurple.copy(alpha = 0f), tween(300), label = "testTint"
     )
-    val tint by animateColorAsState(
-        if (pulsing) Color.White else ZakiPurple, tween(300), label = "roundTint"
+    val testIcon by animateColorAsState(
+        if (isTesting) Color.White else ZakiAccentText, tween(300), label = "testIcon"
     )
-    Box(
-        modifier = Modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(bg)
-            .zakiClickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = description,
-            tint = tint,
-            modifier = Modifier
-                .size(22.dp)
-                .graphicsLayer {
-                    val s = if (pulsing) pulse.value else 1f
-                    scaleX = s
-                    scaleY = s
-                }
-        )
-    }
-}
 
-@Composable
-private fun ConnectButton(isRunning: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(29.dp)
-    val bg by animateColorAsState(
-        if (isRunning) ZakiPurpleSoft else ZakiPurple, tween(420, easing = FastOutSlowInEasing), label = "connectBg"
-    )
-    val fg by animateColorAsState(
-        if (isRunning) ZakiPurple else Color.White, tween(420, easing = FastOutSlowInEasing), label = "connectFg"
-    )
-    val borderColor by animateColorAsState(
-        if (isRunning) ZakiPurple else Color.Transparent, tween(420, easing = FastOutSlowInEasing), label = "connectBorder"
-    )
-    val iconRotation by animateFloatAsState(
-        if (isRunning) 180f else 0f, tween(520, easing = FastOutSlowInEasing), label = "connectIcon"
-    )
-    // Both labels are always laid out (so the button never changes its layout); only their
-    // opacity and a small vertical slide are animated.
-    val runningProgress by animateFloatAsState(
-        if (isRunning) 1f else 0f, tween(380, easing = FastOutSlowInEasing), label = "connectLabel"
-    )
-    val dotPulse: State<Float> = if (isRunning) {
-        rememberInfiniteTransition(label = "dot").animateFloat(
-            initialValue = 0.3f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse),
-            label = "dotAlpha"
-        )
-    } else {
-        remember { mutableStateOf(1f) }
-    }
-
-    Box(
+    Column(
         modifier = modifier
-            .height(58.dp)
-            .clip(shape)
-            .background(bg)
-            .border(1.5.dp, borderColor, shape)
-            .zakiClickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 18.dp)
+            .zakiEnter(delayMs = 120, offsetY = 40.dp, start = contentVisible),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(R.drawable.ic_zaki_power),
-                contentDescription = null,
-                tint = fg,
-                modifier = Modifier
-                    .size(22.dp)
-                    .graphicsLayer { rotationZ = iconRotation }
+        GlassStatusPill(backdrop = backdrop, text = caption, accent = isRunning)
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            GlassRoundButton(
+                backdrop = backdrop,
+                iconRes = R.drawable.ic_zaki_link,
+                description = "Add subscription link",
+                onClick = onAddSubscription
             )
-            Spacer(Modifier.width(10.dp))
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "Connect",
-                    color = fg,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    maxLines = 1,
-                    modifier = Modifier.graphicsLayer {
-                        alpha = 1f - runningProgress
-                        translationY = -8.dp.toPx() * runningProgress
-                    }
-                )
-                Text(
-                    text = "Disconnect",
-                    color = fg,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    maxLines = 1,
-                    modifier = Modifier.graphicsLayer {
-                        alpha = runningProgress
-                        translationY = 8.dp.toPx() * (1f - runningProgress)
-                    }
-                )
-            }
+            Spacer(Modifier.width(14.dp))
+            GlassConnectButton(
+                backdrop = backdrop,
+                isRunning = isRunning,
+                onClick = onToggle,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(14.dp))
+            GlassRoundButton(
+                backdrop = backdrop,
+                iconRes = R.drawable.ic_zaki_bolt,
+                description = "Real delay",
+                onClick = onRealDelay,
+                tint = testTint,
+                iconTint = testIcon,
+                iconScale = { if (isTesting) pulse.value else 1f }
+            )
         }
-        // Status dot sits at the end of the button, so it never pushes the label around.
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 20.dp)
-                .size(7.dp)
-                .graphicsLayer { alpha = runningProgress * dotPulse.value }
-                .background(ZakiPurple, CircleShape)
-        )
     }
 }

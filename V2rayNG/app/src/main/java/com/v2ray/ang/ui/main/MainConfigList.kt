@@ -75,6 +75,7 @@ internal fun ConfigListHost(
     groupId: String,
     mainViewModel: MainViewModel,
     selectedGuid: String?,
+    topPadding: Dp,
     bottomPadding: Dp,
     contentVisible: Boolean,
     onSelect: (String) -> Unit,
@@ -96,7 +97,7 @@ internal fun ConfigListHost(
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 6.dp, bottom = bottomPadding),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = topPadding, bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         itemsIndexed(items = rows, key = { _, row -> row.guid }) { index, row ->

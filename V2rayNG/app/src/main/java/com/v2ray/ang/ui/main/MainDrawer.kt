@@ -33,7 +33,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
+import com.kyant.backdrop.Backdrop
 import com.v2ray.ang.ui.compose.ZakiLogo
+import com.v2ray.ang.ui.compose.glass
 import com.v2ray.ang.ui.compose.ZakiMuted
 import com.v2ray.ang.ui.compose.ZakiPurple
 import com.v2ray.ang.ui.compose.ZakiPurpleSoft
@@ -69,14 +71,25 @@ private val drawerEntries = listOf(
 )
 
 @Composable
-fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) -> Unit) {
+fun MainDrawerContent(
+    drawerState: DrawerState,
+    backdrop: Backdrop? = null,
+    onNavigate: (MainDestination) -> Unit
+) {
     val open = drawerState.targetValue == DrawerValue.Open
 
+    val sheetShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp)
     ModalDrawerSheet(
         drawerState = drawerState,
-        modifier = Modifier.fillMaxWidth(0.76f),
-        drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp)
+        modifier = Modifier
+            .fillMaxWidth(0.76f)
+            .then(
+                if (backdrop != null) Modifier.glass(backdrop = backdrop, shape = sheetShape, blurRadius = 14.dp)
+                else Modifier
+            ),
+        drawerContainerColor = if (backdrop != null) Color.Transparent else MaterialTheme.colorScheme.surface,
+        drawerShape = sheetShape,
+        drawerTonalElevation = 0.dp
     ) {
         Column(
             modifier = Modifier

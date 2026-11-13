@@ -27,6 +27,7 @@ import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.ui.compose.ZakiCard
+import com.v2ray.ang.ui.compose.glassMeshBackground
 import com.v2ray.ang.ui.compose.ZakiLine
 import com.v2ray.ang.ui.compose.ZakiSectionLabel
 import com.v2ray.ang.ui.compose.ZakiSegmented
@@ -61,7 +62,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .glassMeshBackground()
     ) {
         ZakiTopBar(title = "Settings", onBack = onBackClick)
         Column(

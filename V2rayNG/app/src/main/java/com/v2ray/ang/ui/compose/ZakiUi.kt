@@ -191,21 +191,7 @@ fun ZakiCard(
     selected: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(22.dp)
-    val borderColor by animateColorAsState(
-        if (selected) ZakiPurple else ZakiLine, tween(250), label = "cardBorder"
-    )
-    val bg by animateColorAsState(
-        if (selected) ZakiPurpleSoft else ZakiSurface, tween(250), label = "cardBg"
-    )
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(bg)
-            .border(BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor), shape)
-    ) {
-        content()
-    }
+    GlassCardSurface(modifier = modifier, selected = selected, content = content)
 }
 
 @Composable
@@ -359,7 +345,8 @@ fun ZakiTextDialog(
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = ZakiSurface,
+        containerColor = ZakiSurface.copy(alpha = 0.94f),
+        tonalElevation = 0.dp,
         shape = RoundedCornerShape(28.dp),
         title = { Text(title, fontWeight = FontWeight.SemiBold) },
         text = {

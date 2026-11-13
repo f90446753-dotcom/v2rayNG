@@ -33,6 +33,7 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.ZakiBadge
 import com.v2ray.ang.ui.compose.ZakiCard
+import com.v2ray.ang.ui.compose.glassMeshBackground
 import com.v2ray.ang.ui.compose.ZakiLine
 import com.v2ray.ang.ui.compose.ZakiMuted
 import com.v2ray.ang.ui.compose.ZakiSectionLabel
@@ -165,7 +166,7 @@ private fun ConfigDetailScreen(profile: ProfileItem?, onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .glassMeshBackground()
     ) {
         ZakiTopBar(title = "Config details", onBack = onBack)
         if (profile == null) {
