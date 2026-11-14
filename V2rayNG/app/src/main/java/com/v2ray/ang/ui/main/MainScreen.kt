@@ -138,6 +138,7 @@ fun MainScreen(
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         ModalNavigationDrawer(
             drawerState = drawerState,
+            gesturesEnabled = !showSubDialog,
             drawerContent = {
                 MainDrawerContent(
                     drawerState = drawerState,
@@ -197,46 +198,32 @@ fun MainScreen(
                         .align(Alignment.BottomCenter)
                         .onSizeChanged { controlsHeightPx = it.height }
                 )
+
+                val currentUrl = remember(groupId, showSubDialog) {
+                    if (showSubDialog) {
+                        mainViewModel.getSubscriptions()
+                            .firstOrNull { it.guid == groupId }?.subscription?.url.orEmpty()
+                    } else ""
+                }
+                SubscriptionSheet(
+                    visible = showSubDialog,
+                    backdrop = backdrop,
+                    initialUrl = currentUrl,
+                    hasCurrent = currentUrl.isNotEmpty(),
+                    onDismiss = { showSubDialog = false },
+                    onSave = { url ->
+                        showSubDialog = false
+                        if (url.isNotBlank()) onAction(MainAction.SetSubscription(url))
+                    },
+                    onUpdate = {
+                        showSubDialog = false
+                        onAction(MainAction.UpdateSubscriptions)
+                    }
+                )
             }
         }
     }
 
-    if (showSubDialog) {
-        val context = LocalContext.current
-        val currentUrl = remember(groupId) {
-            mainViewModel.getSubscriptions()
-                .firstOrNull { it.guid == groupId }?.subscription?.url.orEmpty()
-        }
-        ZakiTextDialog(
-            title = "Subscription link",
-            initial = currentUrl,
-            singleLine = false,
-            supportingText = "Paste your subscription link. Saving it replaces the current one.",
-            onDismiss = { showSubDialog = false },
-            onConfirm = { url ->
-                showSubDialog = false
-                if (url.isNotBlank()) onAction(MainAction.SetSubscription(url))
-            },
-            extraAction = { setText ->
-                Column {
-                    TextButton(onClick = { setText(Utils.getClipboard(context)) }) {
-                        Text("Paste from clipboard", color = ZakiPurple)
-                    }
-                    if (currentUrl.isNotEmpty()) {
-                        Spacer(Modifier.height(6.dp))
-                        ZakiActionPill(
-                            iconRes = R.drawable.ic_zaki_refresh,
-                            label = "Update current subscription",
-                            onClick = {
-                                showSubDialog = false
-                                onAction(MainAction.UpdateSubscriptions)
-                            }
-                        )
-                    }
-                }
-            }
-        )
-    }
 }
 
 @Composable

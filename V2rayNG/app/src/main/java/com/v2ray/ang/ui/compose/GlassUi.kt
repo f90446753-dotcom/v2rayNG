@@ -111,6 +111,8 @@ fun Modifier.glass(
     refractionAmount: Dp = 20.dp,
     /** Clearer, more liquid look: wider light bending, colour fringes, brighter rim, deeper shadow. */
     liquid: Boolean = false,
+    /** Extra flat colour over the glass, to keep text readable on large panels. */
+    veil: Color = Color.Unspecified,
     layerBlock: (GraphicsLayerScope.() -> Unit)? = null
 ): Modifier {
     val dark = LocalDarkTheme.current
@@ -159,6 +161,7 @@ fun Modifier.glass(
                 drawRect(tint.copy(alpha = 0.75f * tint.alpha))
             }
             drawRect(surface)
+            if (veil.isSpecified) drawRect(veil)
         }
     )
 }
