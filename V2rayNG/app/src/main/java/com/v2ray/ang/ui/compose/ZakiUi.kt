@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -71,6 +72,9 @@ import kotlinx.coroutines.delay
 
 /** Elegant italic serif (Lora Italic, SIL OFL) used for the author name next to the menu. */
 val ZakiBrandFont = FontFamily(Font(R.font.lora_italic))
+
+/** Bold italic version of the same face, used for the name in the top bar. */
+val ZakiBrandFontBold = FontFamily(Font(R.font.lora_bold_italic, FontWeight.Bold, FontStyle.Italic))
 
 /** Violet that stays readable on both the white and the dark surface. */
 val ZakiAccentText: Color @Composable get() = if (LocalDarkTheme.current) Color(0xFFB79CFF) else ZakiPurple

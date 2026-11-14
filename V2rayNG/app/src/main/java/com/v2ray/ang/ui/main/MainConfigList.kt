@@ -195,32 +195,5 @@ private fun ConfigCard(
 
 @Composable
 private fun NoConfigsHint(contentVisible: Boolean) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.zakiEnter(delayMs = 500, start = contentVisible)
-        ) {
-            ZakiLogo(size = 72.dp)
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = "No configs yet",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "Add your subscription link with the button below and your configs will appear here.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ZakiMuted,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
+    JavidEmptyState(contentVisible = contentVisible)
 }

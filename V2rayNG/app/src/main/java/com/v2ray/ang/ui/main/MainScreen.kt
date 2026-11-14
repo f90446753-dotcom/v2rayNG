@@ -1,6 +1,10 @@
 package com.v2ray.ang.ui.main
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import com.v2ray.ang.ui.compose.ZakiBrandFontBold
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars
@@ -261,10 +265,9 @@ private fun MainHeader(
                 onClick = onMenu,
                 tint = ZakiAccentText,
                 size = 46.dp,
-                modifier = Modifier.padding(start = 5.dp)
+                modifier = Modifier.padding(start = 3.dp)
             )
-            Spacer(Modifier.width(8.dp))
-            BrandName(start = contentVisible)
+            BrandName(start = contentVisible, modifier = Modifier.offset(x = (-8).dp))
         }
         AnimatedVisibility(visible = isLoading) {
             LinearProgressIndicator(
@@ -281,10 +284,10 @@ private fun MainHeader(
 
 /** Author name in handwriting; its letters fly in like the splash screen, then a few tiny stars glint on it. */
 @Composable
-private fun BrandName(start: Boolean) {
+private fun BrandName(start: Boolean, modifier: Modifier = Modifier) {
     val name = "Hassan Zakizadeh"
     val fontSize = 13.sp
-    Box(contentAlignment = Alignment.CenterStart) {
+    Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             name.forEachIndexed { index, ch ->
                 SplashFlyIn(
@@ -298,9 +301,12 @@ private fun BrandName(start: Boolean) {
                 ) {
                     Text(
                         text = if (ch == ' ') "\u00A0" else ch.toString(),
-                        fontFamily = ZakiBrandFont,
+                        fontFamily = ZakiBrandFontBold,
+                        fontWeight = FontWeight.Bold,
                         fontSize = fontSize,
-                        color = ZakiAccentText
+                        // Matte, softly blurred ink (the blur is a no-op below Android 12).
+                        color = ZakiAccentText.copy(alpha = 0.85f),
+                        modifier = Modifier.blur(0.7.dp, BlurredEdgeTreatment.Unbounded)
                     )
                 }
             }
@@ -373,33 +379,7 @@ private fun SparkleOverlay(start: Boolean, modifier: Modifier = Modifier) {
 
 @Composable
 private fun EmptyHint(contentVisible: Boolean) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.zakiEnter(delayMs = 150, start = contentVisible)
-        ) {
-            com.v2ray.ang.ui.compose.ZakiLogo(size = 72.dp)
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = "Add your subscription",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "Tap the link button below and paste your subscription link. Your configs will appear here.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ZakiMuted,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-        }
-    }
+    JavidEmptyState(contentVisible = contentVisible)
 }
 
 @Composable
