@@ -1,6 +1,11 @@
 package com.v2ray.ang.ui.main
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.unit.Dp
+import com.v2ray.ang.dto.ConnectionTestResult
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
@@ -136,7 +141,24 @@ fun MainScreen(
     }
 
     val backdrop = rememberLayerBackdrop()
+    val traffic by rememberTrafficSample(active = uiState.isRunning)
+    var connection by remember { mutableStateOf<ConnectionTestResult?>(null) }
+    val statusNow = uiState.status
+    LaunchedEffect(statusNow) {
+        if (statusNow is MainStatus.ConnectionTest) connection = statusNow.result
+    }
+    // Once connected, run the normal connection test a moment later so the card can show the exit
+    // location. Tapping the Location cell repeats it.
+    LaunchedEffect(uiState.isRunning) {
+        if (uiState.isRunning) {
+            delay(2000)
+            onAction(MainAction.TestCurrentServer)
+        } else {
+            connection = null
+        }
+    }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val listTop = topInset + 80.dp + SelectedInfoCardHeight + 12.dp
 
     // The design is English / left-to-right in every language, so the menu stays at the top left.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -162,21 +184,43 @@ fun MainScreen(
                         .layerBackdrop(backdrop)
                         .glassMeshBackground()
                 ) {
-                    if (groupId != null) {
-                        ConfigListHost(
-                            groupId = groupId,
-                            mainViewModel = mainViewModel,
-                            selectedGuid = uiState.selectedGuid,
-                            topPadding = topInset + 56.dp + 22.dp,
-                            bottomPadding = with(LocalDensity.current) { controlsHeightPx.toDp() } + 12.dp,
-                            contentVisible = contentVisible,
-                            onSelect = { guid -> onAction(MainAction.SelectServer(guid)) },
-                            onDetails = { guid -> onAction(MainAction.ShowConfigDetails(guid)) }
-                        )
-                    } else {
-                        EmptyHint(contentVisible = contentVisible)
+                    // The list lives below the pinned card and fades out softly under it.
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(top = listTop)
+                            .fadeTopEdge()
+                    ) {
+                        if (groupId != null) {
+                            ConfigListHost(
+                                groupId = groupId,
+                                mainViewModel = mainViewModel,
+                                selectedGuid = uiState.selectedGuid,
+                                topPadding = 6.dp,
+                                bottomPadding = with(LocalDensity.current) { controlsHeightPx.toDp() } + 12.dp,
+                                contentVisible = contentVisible,
+                                onSelect = { guid -> onAction(MainAction.SelectServer(guid)) },
+                                onDetails = { guid -> onAction(MainAction.ShowConfigDetails(guid)) }
+                            )
+                        } else {
+                            EmptyHint(contentVisible = contentVisible)
+                        }
                     }
                 }
+
+                SelectedInfoCard(
+                    groupId = groupId,
+                    mainViewModel = mainViewModel,
+                    selectedGuid = uiState.selectedGuid,
+                    isRunning = uiState.isRunning,
+                    connection = connection,
+                    traffic = traffic,
+                    contentVisible = contentVisible,
+                    onRefreshLocation = { onAction(MainAction.TestCurrentServer) },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = topInset + 80.dp, start = 20.dp, end = 20.dp)
+                )
 
                 MainHeader(
                     backdrop = backdrop,
@@ -452,3 +496,18 @@ private fun MainControls(
         }
     }
 }
+
+/** Fades the top edge of scrolling content so it dissolves instead of being cut off. */
+private fun Modifier.fadeTopEdge(height: Dp = 18.dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.Transparent, Color.Black),
+                startY = 0f,
+                endY = height.toPx()
+            ),
+            blendMode = BlendMode.DstIn
+        )
+    }
