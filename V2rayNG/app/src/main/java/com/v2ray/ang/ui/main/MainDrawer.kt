@@ -84,7 +84,13 @@ fun MainDrawerContent(
         modifier = Modifier
             .fillMaxWidth(0.76f)
             .then(
-                if (backdrop != null) Modifier.glass(backdrop = backdrop, shape = sheetShape, blurRadius = 14.dp)
+                if (backdrop != null) Modifier.glass(
+                    backdrop = backdrop,
+                    shape = sheetShape,
+                    blurRadius = 10.dp,
+                    refractionHeight = 24.dp,
+                    refractionAmount = 40.dp
+                )
                 else Modifier
             ),
         drawerContainerColor = if (backdrop != null) Color.Transparent else MaterialTheme.colorScheme.surface,

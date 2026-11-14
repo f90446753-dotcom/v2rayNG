@@ -258,7 +258,14 @@ private fun MainHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .glass(backdrop = backdrop, shape = RoundedCornerShape(28.dp), blurRadius = 8.dp),
+                .glass(
+                    backdrop = backdrop,
+                    shape = RoundedCornerShape(28.dp),
+                    blurRadius = 3.dp,
+                    refractionHeight = 24.dp,
+                    refractionAmount = 48.dp,
+                    liquid = true
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ZakiIconButton(

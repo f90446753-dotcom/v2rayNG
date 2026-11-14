@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -54,6 +55,8 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
 import com.v2ray.ang.R
 
 /**
@@ -104,17 +107,50 @@ fun Modifier.glass(
     tint: Color = Color.Unspecified,
     blurRadius: Dp = 6.dp,
     refraction: Boolean = true,
+    refractionHeight: Dp = 10.dp,
+    refractionAmount: Dp = 20.dp,
+    /** Clearer, more liquid look: wider light bending, colour fringes, brighter rim, deeper shadow. */
+    liquid: Boolean = false,
     layerBlock: (GraphicsLayerScope.() -> Unit)? = null
 ): Modifier {
     val dark = LocalDarkTheme.current
-    val surface = if (dark) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.36f)
+    val surface = when {
+        liquid && dark -> Color.White.copy(alpha = 0.035f)
+        liquid -> Color.White.copy(alpha = 0.14f)
+        dark -> Color.White.copy(alpha = 0.07f)
+        else -> Color.White.copy(alpha = 0.36f)
+    }
     return this.drawBackdrop(
         backdrop = backdrop,
         shape = { shape },
         effects = {
             vibrancy()
             blur(blurRadius.toPx())
-            if (refraction) lens(10f.dp.toPx(), 20f.dp.toPx())
+            if (refraction) {
+                lens(
+                    refractionHeight.toPx(),
+                    refractionAmount.toPx(),
+                    depthEffect = liquid,
+                    chromaticAberration = liquid
+                )
+            }
+        },
+        highlight = {
+            if (liquid) {
+                Highlight(width = 1.6f.dp)
+            } else {
+                Highlight.Default
+            }
+        },
+        shadow = {
+            if (liquid) {
+                Shadow(
+                    radius = 22f.dp,
+                    color = Color.Black.copy(alpha = if (dark) 0.35f else 0.16f)
+                )
+            } else {
+                Shadow.Default
+            }
         },
         layerBlock = layerBlock,
         onDrawSurface = {
@@ -161,7 +197,10 @@ fun GlassRoundButton(
                 backdrop = backdrop,
                 shape = CircleShape,
                 tint = tint,
-                blurRadius = 4.dp,
+                blurRadius = 2.dp,
+                refractionHeight = 22.dp,
+                refractionAmount = 44.dp,
+                liquid = true,
                 layerBlock = {
                     scaleX = pressScale.value
                     scaleY = pressScale.value
@@ -203,8 +242,10 @@ fun GlassConnectButton(
         animationSpec = tween(420, easing = FastOutSlowInEasing),
         label = "connectProgress"
     )
+    val idleInk = MaterialTheme.colorScheme.onSurface
+    val activeInk = ZakiAccentText
     val fg by animateColorAsState(
-        targetValue = if (isRunning) ZakiAccentText else Color.White,
+        targetValue = if (isRunning) activeInk else idleInk,
         animationSpec = tween(420, easing = FastOutSlowInEasing),
         label = "connectFg"
     )
@@ -221,8 +262,10 @@ fun GlassConnectButton(
             .glass(
                 backdrop = backdrop,
                 shape = RoundedCornerShape(50),
-                tint = ZakiPurple.copy(alpha = 1f - runningProgress),
-                blurRadius = 4.dp,
+                blurRadius = 2.dp,
+                refractionHeight = 27.dp,
+                refractionAmount = 56.dp,
+                liquid = true,
                 layerBlock = {
                     scaleX = pressScale.value
                     scaleY = pressScale.value
@@ -288,7 +331,14 @@ fun GlassConnectButton(
 fun GlassStatusPill(backdrop: Backdrop, text: String, accent: Boolean, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .glass(backdrop = backdrop, shape = RoundedCornerShape(50), blurRadius = 6.dp, refraction = false)
+            .glass(
+                backdrop = backdrop,
+                shape = RoundedCornerShape(50),
+                blurRadius = 4.dp,
+                refractionHeight = 12.dp,
+                refractionAmount = 24.dp,
+                liquid = true
+            )
             .padding(horizontal = 16.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
