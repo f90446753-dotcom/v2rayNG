@@ -1,0 +1,83 @@
+name: Redesign workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_build:
+        description: 'Start Android build after applying the zip'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: redesign
+  cancel-in-progress: false
+
+jobs:
+  redesign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+
+    - name: Apply redesign zip files
+      run: |
+        shopt -s nullglob
+        ZIPS=( redesign-*.zip )
+        if [ ${#ZIPS[@]} -eq 0 ]; then
+          echo "::error::No file named redesign-*.zip found in the repository root. Upload the zip to the main page first."
+          exit 1
+        fi
+        IFS=$'\n' ZIPS=( $(printf '%s\n' "${ZIPS[@]}" | sort) )
+
+        for Z in "${ZIPS[@]}"; do
+          echo "=== Applying $Z ==="
+          TMP="$(mktemp -d)"
+          unzip -q -o "$Z" -x '.github/*' '__MACOSX/*' -d "$TMP"
+
+          # If everything sits inside one wrapper folder (e.g. v2rayNG-master/), strip it
+          if [ ! -e "$TMP/V2rayNG" ] && [ "$(ls -A "$TMP" | wc -l)" -eq 1 ] && [ -d "$TMP/$(ls -A "$TMP")" ]; then
+            INNER="$TMP/$(ls -A "$TMP")"
+            if [ -e "$INNER/V2rayNG" ]; then TMP="$INNER"; fi
+          fi
+
+          # Optional list of files to delete: one repo-relative path per line
+          if [ -f "$TMP/DELETE_FILES.txt" ]; then
+            while IFS= read -r P || [ -n "$P" ]; do
+              P="${P%$'\r'}"
+              case "$P" in ""|\#*|/*|*..*|.github*|.git|.git/*) continue ;; esac
+              echo "delete: $P"
+              rm -rf -- "$P"
+            done < "$TMP/DELETE_FILES.txt"
+            rm -f "$TMP/DELETE_FILES.txt"
+          fi
+
+          cp -a "$TMP"/. .
+          rm -f "$Z"
+          rm -rf "$TMP"
+        done
+
+    - name: Commit and push
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "Nothing changed."
+        else
+          git commit -m "Apply redesign zip (run ${{ github.run_number }})"
+          git push origin "HEAD:${{ github.ref_name }}"
+        fi
+
+    - name: Start Android build
+      if: ${{ inputs.run_build }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh workflow run android-build.yml --ref "${{ github.ref_name }}"
