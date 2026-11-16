@@ -1,0 +1,126 @@
+name: Android build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      with:
+        submodules: 'recursive'
+        fetch-depth: '0'
+
+    - name: Setup Java
+      uses: actions/setup-java@v6.2.0
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v4
+      with:
+        log-accepted-android-sdk-licenses: false
+        cmdline-tools-version: '14742923'
+        packages: 'platforms;android-37.0 build-tools;37.0.0 platform-tools'
+
+    - name: Install NDK
+      run: |
+        echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          --channel=0 \
+          --install "ndk;30.0.16248370"
+        echo "NDK_HOME=$ANDROID_HOME/ndk/30.0.16248370" >> $GITHUB_ENV
+        GRADLE_FILE="${{ github.workspace }}/V2rayNG/app/build.gradle.kts"
+        if ! grep -q 'ndkVersion' "$GRADLE_FILE"; then
+          sed -i '/namespace = "com.v2ray.ang"/a\    ndkVersion = "30.0.16248370"' "$GRADLE_FILE"
+        fi
+
+    - name: Get native submodule versions
+      id: sub
+      run: |
+        echo "hev=$(git rev-parse HEAD:hev-socks5-tunnel)" >> $GITHUB_OUTPUT
+        echo "tag=$(cd AndroidLibXrayLite && git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+
+    - name: Restore cached libhevtun
+      id: cache-libhevtun-restore
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ github.workspace }}/libs
+        key: libhevtun-${{ runner.os }}-${{ env.NDK_HOME }}-${{ steps.sub.outputs.hev }}-${{ hashFiles('compile-hevtun.sh') }}
+
+    - name: Build libhevtun
+      if: steps.cache-libhevtun-restore.outputs.cache-hit != 'true'
+      run: bash compile-hevtun.sh
+
+    - name: Save libhevtun
+      if: steps.cache-libhevtun-restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ github.workspace }}/libs
+        key: libhevtun-${{ runner.os }}-${{ env.NDK_HOME }}-${{ steps.sub.outputs.hev }}-${{ hashFiles('compile-hevtun.sh') }}
+
+    - name: Copy libhevtun
+      run: cp -r ${{ github.workspace }}/libs ${{ github.workspace }}/V2rayNG/app
+
+    - name: Download libv2ray
+      uses: robinraju/release-downloader@v1.13
+      with:
+        repository: '2dust/AndroidLibXrayLite'
+        tag: ${{ steps.sub.outputs.tag }}
+        fileName: 'libv2ray.aar'
+        out-file-path: V2rayNG/app/libs/
+
+    # Fixed signing key kept in the Actions cache so every build is signed
+    # with the same key and new APKs install over the old ones.
+    - name: Restore signing keystore
+      id: ks-restore
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ runner.temp }}/ci-keystore
+        key: ci-keystore-v1
+
+    - name: Create signing keystore
+      if: steps.ks-restore.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p "$RUNNER_TEMP/ci-keystore"
+        keytool -genkeypair -v \
+          -keystore "$RUNNER_TEMP/ci-keystore/release.jks" \
+          -alias release -keyalg RSA -keysize 2048 -validity 36500 \
+          -storepass android-ci-pass -keypass android-ci-pass \
+          -dname "CN=Redesign Build, O=Personal, C=US"
+
+    - name: Save signing keystore
+      if: steps.ks-restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ runner.temp }}/ci-keystore
+        key: ci-keystore-v1
+
+    - name: Build APK
+      run: |
+        cd ${{ github.workspace }}/V2rayNG
+        echo "sdk.dir=${ANDROID_HOME}" > local.properties
+        chmod 755 gradlew
+        ./gradlew assemblePlaystoreRelease \
+          -Pandroid.injected.signing.store.file="$RUNNER_TEMP/ci-keystore/release.jks" \
+          -Pandroid.injected.signing.store.password=android-ci-pass \
+          -Pandroid.injected.signing.key.alias=release \
+          -Pandroid.injected.signing.key.password=android-ci-pass
+
+    - name: Upload universal APK
+      uses: actions/upload-artifact@v7
+      with:
+        name: universal-apk
+        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/playstore/release/*universal*.apk
+        if-no-files-found: error
