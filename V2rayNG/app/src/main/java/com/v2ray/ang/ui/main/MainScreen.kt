@@ -1,6 +1,8 @@
 package com.v2ray.ang.ui.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -245,7 +247,7 @@ fun MainScreen(
     // Banner, printed every time the app opens.
     LaunchedEffect(Unit) {
         say("Design and Development:")
-        say("Hassan Zakizadeh")
+        say("Hassan Zakizadeh", TermGreen)
         say("")
         runCatching { focusRequester.requestFocus() }
     }
@@ -275,8 +277,8 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(lines.size) {
-        if (lines.isNotEmpty()) listState.scrollToItem(lines.lastIndex)
+    LaunchedEffect(lines.size, input.length) {
+        listState.scrollToItem(lines.size)
     }
 
     val promptText = when (mode) {
@@ -299,9 +301,12 @@ fun MainScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { runCatching { focusRequester.requestFocus() } }
+                    .padding(vertical = 8.dp),
             ) {
                 items(count = lines.size) { index ->
                     val line = lines.getOrNull(index)
@@ -309,37 +314,38 @@ fun MainScreen(
                         BasicText(text = line.text, style = TermStyle.copy(color = line.color))
                     }
                 }
-            }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                BasicText(text = promptText, style = TermStyle.copy(color = TermWhite))
-                BasicTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    textStyle = TermStyle.copy(color = TermWhite),
-                    singleLine = true,
-                    cursorBrush = SolidColor(TermWhite),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        keyboardType = if (mode == TermMode.ENTER_URL) KeyboardType.Uri else KeyboardType.Text,
-                        imeAction = ImeAction.Send,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            val text = input
-                            input = ""
-                            handleInput(text)
-                        }
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
-                )
+                // The blinking prompt sits directly under the last line, like in a real terminal.
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BasicText(text = promptText, style = TermStyle.copy(color = TermWhite))
+                        BasicTextField(
+                            value = input,
+                            onValueChange = { input = it },
+                            textStyle = TermStyle.copy(color = TermWhite),
+                            singleLine = true,
+                            cursorBrush = SolidColor(TermWhite),
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.None,
+                                keyboardType = if (mode == TermMode.ENTER_URL) KeyboardType.Uri else KeyboardType.Text,
+                                imeAction = ImeAction.Send,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onSend = {
+                                    val text = input
+                                    input = ""
+                                    handleInput(text)
+                                }
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(focusRequester),
+                        )
+                    }
+                }
             }
         }
     }
