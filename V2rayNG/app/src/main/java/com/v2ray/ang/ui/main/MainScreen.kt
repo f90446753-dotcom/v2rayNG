@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -45,9 +46,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.entities.ServersCache
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 // ---------- Plain console look: black background, light-gray monospace text ----------
@@ -63,7 +68,23 @@ private data class TermLine(val text: String, val color: Color = TermFg)
 
 private enum class TermMode { COMMAND, ENTER_URL, PICK_CONFIG }
 
-private const val MAX_LINES = 400
+private val TermDim = Color(0xFF9E9E9E)
+
+private const val MAX_LINES = 800
+
+private val LogDatePrefix = Regex("^\\d\\d-\\d\\d ")
+
+/** Turns one raw `logcat -v time` line into a console line (date dropped, errors red, warnings yellow). */
+private fun formatLogLine(raw: String): TermLine? {
+    if (raw.isBlank() || raw.startsWith("---------")) return null
+    val text = raw.replace(LogDatePrefix, "")
+    val color = when {
+        text.contains(" E/") || text.contains(" F/") -> TermRed
+        text.contains(" W/") -> TermYellow
+        else -> TermDim
+    }
+    return TermLine(text, color)
+}
 
 /**
  * The whole app is a text console. No buttons, menus or lists:
@@ -85,6 +106,7 @@ fun MainScreen(
     var input by remember { mutableStateOf("") }
     var pickList by remember { mutableStateOf(emptyList<ServersCache>()) }
     var prevRunning by remember { mutableStateOf<Boolean?>(null) }
+    var logJob by remember { mutableStateOf<Job?>(null) }
 
     fun say(text: String, color: Color = TermFg) {
         lines.add(TermLine(text, color))
@@ -158,6 +180,64 @@ fun MainScreen(
         }
     }
 
+    /**
+     * Streams the app's real log output (core + app tags, same sources as the log viewer) into the
+     * console while connecting/disconnecting, and stops a moment after the target state is reached.
+     */
+    fun startLogs(untilRunning: Boolean, action: () -> Unit) {
+        logJob?.cancel()
+        logJob = scope.launch {
+            var process: Process? = null
+            try {
+                val started = withContext(Dispatchers.IO) {
+                    runCatching { Runtime.getRuntime().exec(arrayOf("logcat", "-c")).waitFor() }
+                    Runtime.getRuntime().exec(
+                        arrayOf(
+                            "logcat", "-v", "time", "-s",
+                            "GoLog,${AppConfig.ANG_PACKAGE},AndroidRuntime,System.err"
+                        )
+                    )
+                }
+                process = started
+                val reader = started.inputStream.bufferedReader()
+                launch(Dispatchers.IO) {
+                    try {
+                        while (isActive) {
+                            val raw = reader.readLine() ?: break
+                            val line = formatLogLine(raw) ?: continue
+                            withContext(Dispatchers.Main) { say(line.text, line.color) }
+                        }
+                    } catch (e: Exception) {
+                        // The log process was stopped.
+                    }
+                }
+                action()
+                val reached = withTimeoutOrNull(30_000) {
+                    snapshotFlow { uiState.isRunning }.first { it == untilRunning }
+                }
+                delay(800)
+                if (reached == null) say("[FAIL] Timed out waiting for the service.", TermRed)
+            } finally {
+                process?.destroy()
+            }
+        }
+    }
+
+    fun updateSubscription() {
+        val sub = realGroup()
+        if (sub == null) {
+            say("[FAIL] No subscription. Press S to enter a link.", TermRed)
+            return
+        }
+        scope.launch {
+            say("Updating subscription...")
+            onAction(MainAction.UpdateGroupSubscription(sub.id))
+            waitForLoading()
+            say("Update finished.", TermGreen)
+            showConfigsOf(sub.id)
+        }
+    }
+
     fun handleInput(raw: String) {
         val text = raw.trim()
         val prompt = when (mode) {
@@ -208,20 +288,22 @@ fun MainScreen(
                         say("[FAIL] No config selected. Press S to enter a subscription link.", TermRed)
                     } else {
                         say("Connecting...")
-                        onAction(MainAction.ToggleService)
+                        startLogs(untilRunning = true) { onAction(MainAction.ToggleService) }
                     }
                 }
 
                 "0" -> {
                     if (uiState.isRunning) {
                         say("Disconnecting...")
-                        onAction(MainAction.ToggleService)
+                        startLogs(untilRunning = false) { onAction(MainAction.ToggleService) }
                     } else {
                         say("Already disconnected.")
                     }
                 }
 
                 "s" -> askForLink()
+
+                "u" -> updateSubscription()
 
                 "c" -> {
                     val group = realGroup()
