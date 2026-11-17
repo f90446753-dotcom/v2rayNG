@@ -32,10 +32,10 @@ class MainActivity : HelperBaseComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Teal Windows 95 "desktop" behind the system bars.
+        // Black console background behind the system bars.
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.rgb(0, 128, 128)),
-            navigationBarStyle = SystemBarStyle.dark(Color.rgb(0, 128, 128)),
+            statusBarStyle = SystemBarStyle.dark(Color.BLACK),
+            navigationBarStyle = SystemBarStyle.dark(Color.BLACK),
         )
         mainViewModel.onAction(MainAction.Initialize)
 
