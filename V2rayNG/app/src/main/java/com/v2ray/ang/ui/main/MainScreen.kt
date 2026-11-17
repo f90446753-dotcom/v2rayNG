@@ -103,15 +103,6 @@ fun MainScreen(
         return serversOf(group.id).firstOrNull { it.guid == guid }?.profile?.remarks ?: "-"
     }
 
-    fun sayHelp() {
-        say("Commands:")
-        say("  1   connect")
-        say("  0   disconnect")
-        say("  S   change subscription link")
-        say("  C   choose config")
-        say("  ?   help")
-    }
-
     fun askForLink() {
         say("Enter subscription link:", TermYellow)
         mode = TermMode.ENTER_URL
@@ -133,7 +124,6 @@ fun MainScreen(
         list.forEach { say("  ${if (it.guid == chosen.guid) "*" else " "} ${it.profile.remarks}") }
         say("Selected: ${chosen.profile.remarks}", TermGreen)
         say("")
-        sayHelp()
     }
 
     suspend fun waitForLoading() {
@@ -247,12 +237,7 @@ fun MainScreen(
                     }
                 }
 
-                "?", "h", "help" -> sayHelp()
-
-                else -> {
-                    say("Unknown command: $text", TermRed)
-                    sayHelp()
-                }
+                else -> say("Unknown command: $text", TermRed)
             }
         }
     }
