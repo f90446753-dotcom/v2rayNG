@@ -32,10 +32,10 @@ class MainActivity : HelperBaseComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Fixed Windows 95 colors for the system bars: navy status bar, gray navigation bar.
+        // Teal Windows 95 "desktop" behind the system bars.
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.rgb(0, 0, 128)),
-            navigationBarStyle = SystemBarStyle.light(Color.rgb(192, 192, 192), Color.rgb(192, 192, 192)),
+            statusBarStyle = SystemBarStyle.dark(Color.rgb(0, 128, 128)),
+            navigationBarStyle = SystemBarStyle.dark(Color.rgb(0, 128, 128)),
         )
         mainViewModel.onAction(MainAction.Initialize)
 

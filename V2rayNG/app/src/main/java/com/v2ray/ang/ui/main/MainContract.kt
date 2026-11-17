@@ -65,6 +65,8 @@ sealed interface MainAction {
     data class ShareFullContent(val guid: String) : MainAction
     data object DismissQRCodeDialog : MainAction
     data class OpenSubscriptionLink(val url: String) : MainAction
+    /** Single-subscription mode: add [url] as the only subscription, replacing the previous one. */
+    data class ReplaceSubscription(val url: String) : MainAction
 
     data class ImportBatchConfig(val configText: String) : MainAction
 

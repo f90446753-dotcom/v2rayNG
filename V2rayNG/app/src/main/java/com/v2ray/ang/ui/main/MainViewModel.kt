@@ -292,6 +292,7 @@ class MainViewModel(
             is MainAction.RemoveServer -> removeServerAndRefresh(action.guid)
             is MainAction.Search -> filterConfig(action.query)
             is MainAction.ImportBatchConfig -> importBatchConfig(action.configText)
+            is MainAction.ReplaceSubscription -> replaceSubscription(action.url)
             MainAction.LocateHandled -> consumeLocateTarget()
             is MainAction.ShareQRCode -> {
                 val bitmap = dataSource.share2QRCode(action.guid)
@@ -535,6 +536,26 @@ class MainViewModel(
                     throw cancelled
                 } catch (e: Exception) {
                     LogUtil.e(AppConfig.TAG, "Failed to import batch config", e)
+                    toastError(R.string.toast_failure)
+                }
+            }
+        }
+    }
+
+    private fun replaceSubscription(url: String) {
+        launchLoading {
+            withContext(ioDispatcher) {
+                try {
+                    if (dataSource.replaceSubscription(url)) {
+                        setupGroupTab(forceRefresh = true)
+                        refreshSelectedGuid()
+                    } else {
+                        toastError(R.string.toast_failure)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (e: Exception) {
+                    LogUtil.e(AppConfig.TAG, "Failed to replace subscription", e)
                     toastError(R.string.toast_failure)
                 }
             }

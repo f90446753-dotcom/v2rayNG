@@ -192,6 +192,22 @@ class MainRepository(
         updateUI: Boolean
     ): Pair<Int, Int> = AngConfigManager.importBatchConfig(server, subscriptionId, updateUI)
 
+    override suspend fun replaceSubscription(url: String): Boolean {
+        val hidden = AppConfig.DEFAULT_SUBSCRIPTION_ID
+        val oldIds = MmkvManager.decodeSubscriptions().map { it.guid }.filter { it != hidden }
+        val (_, countSub) = AngConfigManager.importBatchConfig(url, "", true)
+        if (countSub <= 0) return false
+        val newIds = MmkvManager.decodeSubscriptions().map { it.guid }
+            .filter { it != hidden && it !in oldIds }
+        val loaded = newIds.any { MmkvManager.decodeServerList(it).isNotEmpty() }
+        if (loaded) {
+            oldIds.forEach { MmkvManager.removeSubscription(it) }
+            return true
+        }
+        newIds.forEach { MmkvManager.removeSubscription(it) }
+        return false
+    }
+
     override fun updateConfigViaSubAll(): SubscriptionUpdateResult =
         AngConfigManager.updateConfigViaSubAll()
 

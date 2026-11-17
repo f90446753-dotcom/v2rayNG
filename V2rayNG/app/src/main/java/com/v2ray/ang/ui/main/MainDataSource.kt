@@ -49,6 +49,9 @@ interface MainDataSource : Closeable {
         updateUI: Boolean
     ): Pair<Int, Int>
 
+    /** Adds [url] as the only user subscription; returns false (keeping the old one) if it could not be loaded. */
+    suspend fun replaceSubscription(url: String): Boolean
+
     fun updateConfigViaSubAll(): SubscriptionUpdateResult
     fun updateConfigViaSub(subscriptionCache: SubscriptionCache): SubscriptionUpdateResult
 
