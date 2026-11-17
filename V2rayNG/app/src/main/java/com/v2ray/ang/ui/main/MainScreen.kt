@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -27,18 +26,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,7 +65,22 @@ private val TermWhite = Color(0xFFFFFFFF)
 private val TermGreen = Color(0xFF16C60C)
 private val TermRed = Color(0xFFE74856)
 private val TermYellow = Color(0xFFF9F1A5)
-private val TermStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp, color = TermFg)
+private val TermStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = TermFg)
+
+/** Draws the prompt inside the text field so long input wraps back to column 0, like a real terminal. */
+private class PromptTransformation(private val prompt: String) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val shown = buildAnnotatedString {
+            append(prompt)
+            append(text)
+        }
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = offset + prompt.length
+            override fun transformedToOriginal(offset: Int): Int = (offset - prompt.length).coerceAtLeast(0)
+        }
+        return TransformedText(shown, mapping)
+    }
+}
 
 private data class TermLine(val text: String, val color: Color = TermFg)
 
@@ -369,6 +387,8 @@ fun MainScreen(
         TermMode.PICK_CONFIG -> "number> "
     }
 
+    val promptTransformation = remember(promptText) { PromptTransformation(promptText) }
+
     // Fixed left-to-right layout, like a real console.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(
@@ -399,34 +419,36 @@ fun MainScreen(
 
                 // The blinking prompt sits directly under the last line, like in a real terminal.
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BasicText(text = promptText, style = TermStyle.copy(color = TermWhite))
-                        BasicTextField(
-                            value = input,
-                            onValueChange = { input = it },
-                            textStyle = TermStyle.copy(color = TermWhite),
-                            singleLine = true,
-                            cursorBrush = SolidColor(TermWhite),
-                            keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.None,
-                                keyboardType = if (mode == TermMode.ENTER_URL) KeyboardType.Uri else KeyboardType.Text,
-                                imeAction = ImeAction.Send,
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onSend = {
-                                    val text = input
-                                    input = ""
-                                    handleInput(text)
-                                }
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(focusRequester),
-                        )
-                    }
+                    BasicTextField(
+                        value = input,
+                        onValueChange = { value ->
+                            if (value.contains('\n')) {
+                                input = ""
+                                handleInput(value.replace("\n", ""))
+                            } else {
+                                input = value
+                            }
+                        },
+                        textStyle = TermStyle.copy(color = TermWhite),
+                        singleLine = false,
+                        cursorBrush = SolidColor(TermWhite),
+                        visualTransformation = promptTransformation,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.None,
+                            keyboardType = if (mode == TermMode.ENTER_URL) KeyboardType.Uri else KeyboardType.Text,
+                            imeAction = ImeAction.Send,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                val text = input
+                                input = ""
+                                handleInput(text)
+                            }
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                    )
                 }
             }
         }
